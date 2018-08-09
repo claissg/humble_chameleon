@@ -2,7 +2,6 @@ Humble Chameleon
 ============
 Humble Chameleon is a tool originally designed to MitM services that have multi-factor auth and allows us to steal sessions through SE.
 In addition, the tool now allows us to categorize domains, hide our phishing pages, deliver payloads, and replay POST requests.
-Be careful when using with clients as they are likely to ask how it works and how to 'fix' it.
 
 Installation 
 ============
@@ -21,7 +20,6 @@ install whole project (do NOT run as root):
 cd setup
 ./setup.sh
 ```
-Then exit your SSH session and log back in. Not sure why node doesn't get included in the PATH right away but this is an easy enough workaround
 
 Usage
 =====
