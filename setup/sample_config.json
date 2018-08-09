@@ -1,0 +1,27 @@
+{
+"phishing_domain.com": {
+        "primary_target": "target1.com",
+        "secondary_target": "target2.com",
+        "replacements": {
+            "string_to_replace": "replacement_string"
+        },
+        "custom_headers": {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Credentials": "true"
+        },
+        "snitch": {
+            "snitch_string": "Logoff",
+            "redirect_url": "https://real.domain.com/index.html"
+        },
+        "url_search": {
+            "switch": true,
+            "search_string": "evil_string",
+            "set_cookie": false
+        },
+        "cookie_search": {
+            "switch": false,
+            "cookie": "evil_cookie",
+            "cookie_value": "evil_value"
+        }
+    }
+}

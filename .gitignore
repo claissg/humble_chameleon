@@ -1,0 +1,6 @@
+node_modules/
+*.pem
+package-lock.json
+config.json
+admin_config.json
+logs/*.log

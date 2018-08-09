@@ -1,0 +1,104 @@
+        ;
+        var dummy_config = {
+            "primary_target": "target1.com",
+            "secondary_target": "target2.com",
+            "replacements": {
+                "string_to_be_replaced": "replacement_string"
+            },
+            "custom_headers": {
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Credentials": "true"
+            },
+            "snitch": {
+                "snitch_string": "Logoff",
+                "redirect_url": "https://real.domain.com/index.html"
+            },
+            "url_search": {
+                "switch": true,
+                "search_string": "evil_string",
+                "set_cookie": false
+            },
+            "cookie_search": {
+                "switch": false,
+                "cookie": "evil_cookie",
+                "cookie_value": "evil_value"
+            }
+        };
+    </script>
+    <script>
+        function setTextArea() {
+            document.getElementById('config').value = JSON.stringify(config, null, 4);
+        }
+
+        function addDomain() {
+            config = JSON.parse(document.getElementById('config').value);
+            config["new_domain.com"] = dummy_config;
+            setTextArea();
+        }
+
+        function prettyPrint() {
+            try {
+                config = JSON.parse(document.getElementById('config').value);
+                setTextArea();
+		//update the data for the POST if we save changes
+                document.getElementById('config_input').value = JSON.stringify(config);
+            } catch (err) {
+                alert("JSON parsing error: look for <ERROR> in config");
+                var position = parseInt(err.toString().match(/[0-9]+/));
+                var config_text = document.getElementById('config').value;
+                config_text = config_text.slice(0, position) + '<ERROR>' + config_text.slice(position);
+                document.getElementById('config').value = config_text;
+            }
+        }
+
+        function setPostInput() {
+	    try {
+                document.getElementById('config_input').value = JSON.stringify(JSON.parse(document.getElementById('config').value));
+	    } catch(err) {
+		//who cares
+	    }
+        }
+
+        function pageSetup() {
+            document.getElementById('config_form').action = window.location.href;
+            setTextArea();
+            setPostInput();
+	}
+
+    </script>
+</head>
+<style>
+    #config {
+        margin: auto;
+        display: block;
+        min-height: 1000px;
+        width: 90%;
+        font-size: 16px;
+    }
+    
+    .button {
+        padding: 10px;
+        margin: auto;
+        display: block;
+        font-size: 16px;
+    }
+
+    #cofig_form {
+        padding: 10px;
+        margin: auto;
+        display: block;
+        font-size: 16px;
+    }
+</style>
+
+<body onload="pageSetup()">
+    <textarea id="config" form="config_form" onkeyup="setPostInput();"></textarea>
+    <button class="button" type="button" onclick="addDomain()">Add Domain</button>
+    <button class="button" type="button" onclick="prettyPrint()">Validate JSON</button>
+    <form action="" id="config_form" method="post">
+        <input type="hidden" value="" name="config" id="config_input">
+        <input type="submit" value="Save Changes">
+    </form>
+</body>
+
+</html>

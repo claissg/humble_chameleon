@@ -1,0 +1,10 @@
+{
+    "admin_cookie": {
+        "cookie_name": "admin_cookie",
+        "cookie_value": "super_secret_pass"
+    },
+    "set_admin": {
+        "switch": true,
+        "search_string": "longurlsearchstring"
+    }
+}
