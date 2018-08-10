@@ -7,7 +7,7 @@ Installation
 ============
 This project is now written in Node.js for its flexibility and non-blocking I/O.
 You will need to install Node and NPM (Node Package Manager) to run the project.
-You can run a setup script in the project to install LinuxBrew, Node.js, npm, and use npm to install node dependencies:
+You can run a setup script in the project to install Node.js, npm, and use npm to install node dependencies:
 
 Optional but Highly Recommended: Update Kali first. Must be run as root(not just sudo):
 ```
