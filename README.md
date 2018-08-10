@@ -53,7 +53,7 @@ sudo service nginx restart
     }
 }
 ```
-- Manually edit your config.json and replace "new_domain.com" with your phishing domain. You should also set at least your primary target at this point. Once you have it running, you will be able to make more changes from the admin console.
+- Manually edit your config.json and replace "phishing_domain.com" with your phishing domain. You should also set at least your primary target at this point. Once you have it running, you will be able to make more changes from the admin console.
 
 - Open a screen or tmux and start your HC server.
 ```
