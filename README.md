@@ -3,6 +3,8 @@ Humble Chameleon
 Humble Chameleon is a tool originally designed to MitM services that have multi-factor auth and allows us to steal sessions through SE.
 In addition, the tool now allows us to categorize domains, hide our phishing pages, deliver payloads, and replay POST requests.
 
+Check out [the wiki](https://github.com/claissg/humble_chameleon/wiki) for more detailed installation and usage instructions. See below for basic install:
+
 Installation 
 ============
 This project is now written in Node.js for its flexibility and non-blocking I/O.
