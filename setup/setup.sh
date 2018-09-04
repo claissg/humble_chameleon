@@ -22,6 +22,6 @@ npm install
 cp ./setup/sample_config.json ./config.json
 cp ./setup/sample_admin_config.json ./admin_config.json
 echo "Finished Installing Humble Chameleon!
-To get started, run add_domain.sh as root (not just sudo) to configure nginx for your domain. Then:
+To get started, run add_domain.sh as a sudoer to configure nginx for your domain. Then:
 cd ..
 node index.js"
