@@ -21,6 +21,7 @@ echo "Installing Humble Chameleon Dependencies and adding sample configs"
 npm install
 cp ./setup/sample_config.json ./config.json
 cp ./setup/sample_admin_config.json ./admin_config.json
+
 echo "Finished Installing Humble Chameleon!
 To get started, run add_domain.sh as a sudoer to configure nginx for your domain. Then:
 cd ..

