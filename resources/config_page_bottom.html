@@ -2,6 +2,7 @@
         var dummy_config = {
             "primary_target": "target1.com",
             "secondary_target": "target2.com",
+            "wwwroot": "mydir",
             "replacements": {
                 "string_to_be_replaced": "replacement_string"
             },
@@ -32,7 +33,7 @@
 
         function addDomain() {
             config = JSON.parse(document.getElementById('config').value);
-            config["phishing_domain.com"] = dummy_config;
+            config["new_domain.com"] = dummy_config;
             setTextArea();
         }
 

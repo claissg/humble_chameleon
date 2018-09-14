@@ -2,6 +2,7 @@
 "phishing_domain.com": {
         "primary_target": "target1.com",
         "secondary_target": "target2.com",
+        "wwwroot": "mydir",
         "replacements": {
             "string_to_replace": "replacement_string"
         },

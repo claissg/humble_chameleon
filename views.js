@@ -1,3 +1,5 @@
+mime_file = fs.readFileSync("./wwwroot/mimetypes.json");
+mime_types = JSON.parse(mime_file);
 module.exports = {
   redirect: function(redirect_path, humble_response) {
   //  humble_response.write(replace(fs.readFileSync("./resources/redirect_top.html"), "\n", ""));
@@ -7,6 +9,19 @@ module.exports = {
       humble_response.setHeader("location", redirect_path)
       humble_response.statusCode = 302
       humble_response.end()
+  },
+
+  deliver_file: function(file_name, humble_response) {
+      try {
+        extention = file_name.split('.')[1]
+        mime_type = mime_types[extention]
+        humble_response.setHeader('content-type', mime_type)
+        humble_response.write(fs.readFileSync("./wwwroot/" + file_name));
+        humble_response.end()
+      } catch(err) {
+        console.log(fail + "Coundn't Find  File in wwwroot: " + file_name)
+        humble_response.end()
+      }
   },
 
   set_cookie: function(cookie, humble_response) {
