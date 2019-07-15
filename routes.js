@@ -1,5 +1,5 @@
 module.exports = {
-  getTarget: function(humble_domain, victim_request) {
+  getTarget: function(humble_domain, victim_request, ship_logs) {
     try {
       var domain = config[humble_domain]
       var primary = domain.primary_target
@@ -19,6 +19,11 @@ module.exports = {
       if (full_path.includes(domain.wwwroot)){
         console.log(success + "Sent a Payload: " + full_path)
         access_log.write("[+] Sent a Payload: " + full_path + "\n")
+        if(full_path.includes(domain.search_string)){
+          let tracking_search = new RegExp(domain.search_string + '=([^\&]*)')
+          tracking_id = tracking_search.exec(full_path)[1]
+          ship_logs({"target": tracking_id, "event_type": "DIRECT_DOWNLOAD", "event_data": file_name})
+        }
         return {
           target_type: "payload",
           target: file_name
@@ -36,38 +41,39 @@ module.exports = {
         } 
       }
 
-      if (domain.cookie_search) {
-	if (domain.cookie_search.switch) {
-          try {
-            if (cookie.includes(domain.cookie_search.cookie + "=" + domain.cookie_search.cookie_value)) {
-              return {
-                target_type: "proxy",
-                target: secondary 
-              }
-            }
-          } catch (err) {
-            console.log(fail + "couldn't read cookie for cookie_search: " + err)
+      try {
+        if (cookie.includes(domain.tracking_cookie)) {
+          //track repeat clicks anyway
+          if(full_path.includes(domain.search_string)){
+            let tracking_search = new RegExp(domain.search_string + '=([^\&]*)')
+            tracking_id = tracking_search.exec(full_path)[1]
+            ship_logs({"target": tracking_id, "event_type": "CLICK", "event_data": full_path})
+          }
+          return {
+            target_type: "proxy",
+            target: secondary 
           }
         }
-      } 
+      } catch (err) {
+        console.log(fail + "couldn't read cookie for tracking_cookie: " + err)
+      }
 
-      if (domain.url_search) {
-	if (domain.url_search.switch) {
-          try {
-            if (full_path.includes(domain.url_search.search_string)) {
-              //set our search cookie if we have this option set in our config
-              //this come into play in humbleProxy and is used as a global semaphore
-              set_cookie = domain.url_search.set_cookie
-              return {
-                target_type: "proxy",
-                target: secondary 
-              }
-            }
-          } catch (err) {
-            console.log(fail + "problem with url_search: " + err)
+      try {
+        if (full_path.includes(domain.search_string)) {
+          //set our search cookie if we have this option set in our config
+          //this come into play in humbleProxy and is used as a global semaphore
+          set_cookie = true
+          let tracking_search = new RegExp(domain.search_string + '=([^\&]*)')
+          tracking_id = tracking_search.exec(full_path)[1]
+          ship_logs({"target": tracking_id, "event_type": "CLICK", "event_data": full_path})
+          return {
+            target_type: "proxy",
+            target: secondary 
           }
         }
-      } 
+      } catch (err) {
+        console.log(fail + "problem with url_search: " + err)
+      }
 
       return {
         target_type: "proxy",

@@ -2,9 +2,11 @@
         var dummy_config = {
             "primary_target": "target1.com",
             "secondary_target": "target2.com",
+            "search_string": "evil_string",
             "wwwroot": "mydir",
+            "tracking_cookie": "evil_cookie",
             "replacements": {
-                "string_to_be_replaced": "replacement_string"
+                "string_to_replace": "replacement_string"
             },
             "custom_headers": {
                 "Access-Control-Allow-Origin": "*",
@@ -14,15 +16,10 @@
                 "snitch_string": "Logoff",
                 "redirect_url": "https://real.domain.com/index.html"
             },
-            "url_search": {
-                "switch": true,
-                "search_string": "evil_string",
-                "set_cookie": false
-            },
-            "cookie_search": {
-                "switch": false,
-                "cookie": "evil_cookie",
-                "cookie_value": "evil_value"
+            "logging_endpoint": {
+                "host": "www.myloggingserver.com",
+                "url": "/log_event",
+                "auth_cookie": "mycookie=authcookie"
             }
         };
     </script>

