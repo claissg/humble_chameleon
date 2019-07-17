@@ -5,8 +5,8 @@ module.exports = {
   humbleProxy: function(victim_request, humble_response) {
     return function(res) {
       //log who is asking our server for which pages
-      console.log(info + dateFormat("isoDateTime") + " " + "Request: " + victim_request.connection.remoteAddress + ": " + res.statusCode + " " + http_method + " " + requested_domain + url.parse(victim_request.url).path)
-      access_log.write("[*]" + dateFormat("isoDateTime") + " " + "Request: " + victim_request.connection.remoteAddress + ": " + res.statusCode + " " + http_method + " " + requested_domain + url.parse(victim_request.url).path + "\n")
+      console.log(info + dateFormat("isoDateTime") + " " + "Request: " + victim_request.x_real_ip + ": " + res.statusCode + " " + http_method + " " + requested_domain + url.parse(victim_request.url).path)
+      access_log.write("[*]" + dateFormat("isoDateTime") + " " + "Request: " + victim_request.x_real_ip + ": " + res.statusCode + " " + http_method + " " + requested_domain + url.parse(victim_request.url).path + "\n")
       humble_response.statusCode = res.statusCode;
       humble_response.statusMessage = res.statusMessage;
       //console.log(options)

@@ -28,18 +28,16 @@ server {
     ssl_certificate      $certfullchain;
     ssl_certificate_key  $certkey;
     ssl_session_timeout  5m;
-
-    ssl_protocols TLSv1.3 TLSv1.2 TLSv1.1;
-    ssl_prefer_server_ciphers on;
-    ssl_ciphers EECDH+ECDSA+AESGCM:EECDH+aRSA+AESGCM:EECDH+ECDSA+SHA512:EECDH+ECDSA+SHA384:EECDH+ECDSA+SHA256:ECDH+AESGCM:ECDH+AES256:DH+AESGCM:DH+AES256:RSA+AESGCM:!aNULL:!eNULL:!LOW:!RC4:!3DES:!MD5:!EXP:!PSK:!SRP:!DSS;
-
+    ssl_protocols  SSLv2 SSLv3 TLSv1;
+    ssl_ciphers  ALL:!ADH:!EXPORT56:RC4+RSA:+HIGH:+MEDIUM:+LOW:+SSLv2:+EXP;
+    ssl_prefer_server_ciphers   on;
     access_log      $vhostlogpath/access.log;
     error_log       $vhostlogpath/error.log;
     location / {
         proxy_pass http://127.0.0.1:8000;
         proxy_pass_request_headers on;
-#not sure if we need these...
         proxy_set_header Host \$host;
+        proxy_set_header  X-Real-IP $remote_addr;
         proxy_ssl_session_reuse off;
     }
 }

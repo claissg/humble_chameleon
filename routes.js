@@ -22,7 +22,7 @@ module.exports = {
         if(full_path.includes(domain.search_string)){
           let tracking_search = new RegExp(domain.search_string + '=([^\&]*)')
           tracking_id = tracking_search.exec(full_path)[1]
-          ship_logs({"target": tracking_id, "event_type": "DIRECT_DOWNLOAD", "event_data": file_name})
+          ship_logs({"event_ip": victim_request.x_real_ip,"target": tracking_id, "event_type": "DIRECT_DOWNLOAD", "event_data": file_name})
         }
         return {
           target_type: "payload",
@@ -47,7 +47,7 @@ module.exports = {
           if(full_path.includes(domain.search_string)){
             let tracking_search = new RegExp(domain.search_string + '=([^\&]*)')
             tracking_id = tracking_search.exec(full_path)[1]
-            ship_logs({"target": tracking_id, "event_type": "CLICK", "event_data": full_path})
+            ship_logs({"event_ip": victim_request.x_real_ip,"target": tracking_id, "event_type": "CLICK", "event_data": full_path})
           }
           return {
             target_type: "proxy",
@@ -65,7 +65,7 @@ module.exports = {
           set_cookie = true
           let tracking_search = new RegExp(domain.search_string + '=([^\&]*)')
           tracking_id = tracking_search.exec(full_path)[1]
-          ship_logs({"target": tracking_id, "event_type": "CLICK", "event_data": full_path})
+          ship_logs({"event_ip": victim_request.x_real_ip,"target": tracking_id, "event_type": "CLICK", "event_data": full_path})
           return {
             target_type: "proxy",
             target: secondary 
