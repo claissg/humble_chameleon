@@ -60,10 +60,16 @@ module.exports = {
 	}
       }//finish setting up translated headers
      //set any custom headers
-      custom_headers = config[humble_domain].custom_headers
-      Object.keys(custom_headers).forEach(function(key) {
-	humble_response.setHeader(key.toLowerCase(), custom_headers[key])
-      });
+      try{
+        custom_headers = config[humble_domain].custom_headers
+        Object.keys(custom_headers).forEach(function(key) {
+          humble_response.setHeader(key.toLowerCase(), custom_headers[key])
+        });
+      }catch(err){
+        console.log(fail + dateFormat("isoDateTime") + " " + "Something Wrong with custom header: " + err)
+        error_log.write("[-]" + dateFormat("isoDateTime") + " " + "Something Wrong with custom header: " + err + "\n")
+        access_log.write("[-]" + dateFormat("isoDateTime") + " " + "Something Wrong with custom header: " + err + "\n")
+      }
  
       var bufs = [];
       res.on('data', function(chunk) { 
@@ -112,8 +118,12 @@ module.exports = {
               decoded = buf;
               break;
           }
+          try{
 	  //perform any additional custom replacements first
-          replacements = config[humble_domain].replacements
+            replacements = config[humble_domain].replacements
+          }catch(err){
+            replacements = {"dummy_string": "dummy_string"}
+	  }
           Object.keys(replacements).forEach(function(key) {
             decoded = replace(decoded, key, replacements[key])
           });

