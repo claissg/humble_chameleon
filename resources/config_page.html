@@ -1,4 +1,11 @@
-        ;
+<html>
+
+<head>
+  <title>Humble Chameleon</title>
+  <link rel="shortcut icon"type="image/x-icon" href="data:image/x-icon;,">
+    <script>
+        var config = '';
+
         var dummy_config = {
             "primary_target": "target1.com",
             "secondary_target": "target2.com",
@@ -28,7 +35,7 @@
     </script>
     <script>
         function setTextArea() {
-            document.getElementById('config').value = JSON.stringify(config, null, 4);
+            //document.getElementById('config').value = JSON.stringify(config, null, 4);
         }
 
         function addDomain() {
@@ -62,8 +69,8 @@
 
         function pageSetup() {
             document.getElementById('config_form').action = window.location.href;
-            setTextArea();
-            setPostInput();
+            //setTextArea();
+            get_current_config()
 	}
 
         document.addEventListener("DOMContentLoaded", function(event) { 
@@ -75,7 +82,18 @@
           docHead.appendChild(newLink);
         });
 
+        function get_current_config(){
+          xhr = new XMLHttpRequest();
 
+          xhr.open('PUT', '/config');
+          //xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+          xhr.onload = function() {
+            document.getElementById('config').value = JSON.stringify(JSON.parse(xhr.responseText), null, 4);
+            setPostInput();
+          };
+          xhr.send();
+        }
+          
     </script>
 </head>
 <style>

@@ -38,23 +38,22 @@ module.exports = {
   },
 
   adminConfig: function(victim_request, humble_response) {
-    if (http_method == 'POST') {
+    if (http_method == 'PUT') {
+        humble_response.write(JSON.stringify(config));
+        humble_response.end()
+    }else if (http_method == 'POST') {
       try {
         config = JSON.parse(decodeURIComponent(postData.split('=')[1]))
 	fs.writeFileSync('./config.json', JSON.stringify(config, null, 4));
         console.log(success + "Updated Config File: " + decodeURIComponent(postData))
-        humble_response.write(fs.readFileSync("./resources/config_page_top.html"));
-        humble_response.write(JSON.stringify(config));
-        humble_response.write(fs.readFileSync("./resources/config_page_bottom.html"));
+        humble_response.write(fs.readFileSync("./resources/config_page.html"));
         humble_response.end()
       } catch(err) {
         humble_response.write("problem with config: " + err)
         humble_response.end()
       }
     } else {
-      humble_response.write(fs.readFileSync("./resources/config_page_top.html"));
-      humble_response.write(JSON.stringify(config));
-      humble_response.write(fs.readFileSync("./resources/config_page_bottom.html"));
+      humble_response.write(fs.readFileSync("./resources/config_page.html"));
       humble_response.end()
     }
   },
