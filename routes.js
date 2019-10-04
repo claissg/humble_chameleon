@@ -36,7 +36,7 @@ module.exports = {
           access_log.write("[+] Setting admin cookie\n")
             return {
             target_type: "set_cookie",
-            target: admin_config.admin_cookie.cookie_name + " = " + admin_config.admin_cookie.cookie_value + ";secure;httponly"
+            target: admin_config.admin_cookie.cookie_name + " = " + admin_config.admin_cookie.cookie_value + ";domain=" + humble_domain + ";secure;httponly"
           }
         } 
       }
