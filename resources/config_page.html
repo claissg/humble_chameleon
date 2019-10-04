@@ -7,35 +7,29 @@
         var config = '';
 
         var dummy_config = {
-            "primary_target": "target1.com",
-            "secondary_target": "target2.com",
-            "wwwroot": "mydir",
-            "replacements": {
-                "string_to_be_replaced": "replacement_string"
-            },
-            "custom_headers": {
-                "Access-Control-Allow-Origin": "*",
-                "Access-Control-Allow-Credentials": "true"
-            },
-            "snitch": {
-                "snitch_string": "Logoff",
-                "redirect_url": "https://real.domain.com/index.html"
-            },
-            "url_search": {
-                "switch": true,
-                "search_string": "evil_string",
-                "set_cookie": false
-            },
-            "cookie_search": {
-                "switch": false,
-                "cookie": "evil_cookie",
-                "cookie_value": "evil_value"
-            }
+          "primary_target": "faketarget.org",
+          "secondary_target": "realtarget.org",
+          "search_string": "evil_string",
+          "wwwroot": "mywwwdir",
+          "tracking_cookie": "evil_cookie",
+          "replacements": {
+            "string_to_be_replaced": "replacement_string"
+          },
+          "custom_headers": {},
+          "snitch": {
+            "snitch_string": "Logoff",
+            "redirect_url": "https://real.domain.com/index.html"
+          },
+          "logging_endpoint": {
+            "host": "www.loggingendpoint.com",
+            "url": "/create_event",
+            "auth_cookie": "admin_cookie=cookieval"
+          }
         };
     </script>
     <script>
         function setTextArea() {
-            //document.getElementById('config').value = JSON.stringify(config, null, 4);
+            document.getElementById('config').value = JSON.stringify(config, null, 4);
         }
 
         function addDomain() {
@@ -48,9 +42,8 @@
             try {
                 config = JSON.parse(document.getElementById('config').value);
                 setTextArea();
-		//update the data for the POST if we save changes
-                document.getElementById('config_input').value = JSON.stringify(config);
             } catch (err) {
+	        console.log(err)
                 alert("JSON parsing error: look for <ERROR> in config");
                 var position = parseInt(err.toString().match(/[0-9]+/));
                 var config_text = document.getElementById('config').value;
@@ -68,8 +61,6 @@
         }
 
         function pageSetup() {
-            document.getElementById('config_form').action = window.location.href;
-            //setTextArea();
             get_current_config()
 	}
 
@@ -92,6 +83,17 @@
             setPostInput();
           };
           xhr.send();
+        }
+
+        function saveChanges(){
+          xhr = new XMLHttpRequest();
+
+          xhr.open('POST', '/config');
+          new_config = document.getElementById('config').value
+          xhr.onload = function() {
+            alert(xhr.responseText)
+          };
+          xhr.send(new_config);
         }
           
     </script>
@@ -124,10 +126,7 @@
     <textarea id="config" form="config_form" onkeyup="setPostInput();"></textarea>
     <button class="button" type="button" onclick="addDomain()">Add Domain</button>
     <button class="button" type="button" onclick="prettyPrint()">Validate JSON</button>
-    <form action="" id="config_form" method="post">
-        <input type="hidden" value="" name="config" id="config_input">
-        <input type="submit" value="Save Changes">
-    </form>
+    <button class="button" type="button" onclick="saveChanges()">Save Changes</button>
 </body>
 
 </html>

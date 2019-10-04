@@ -43,11 +43,10 @@ module.exports = {
       humble_response.end()
     }else if (http_method == 'POST') {
       try {
-        config = JSON.parse(decodeURIComponent(postData.split('=')[1]))
+        config = JSON.parse(decodeURIComponent(postData))
 	fs.writeFileSync('./config.json', JSON.stringify(config, null, 4));
         console.log(success + "Updated Config File: " + decodeURIComponent(postData))
-        humble_response.write(fs.readFileSync("./resources/config_page.html"));
-        humble_response.end()
+        humble_response.end("Successfully Saved Config")
       } catch(err) {
         humble_response.write("problem with config: " + err)
         humble_response.end()
