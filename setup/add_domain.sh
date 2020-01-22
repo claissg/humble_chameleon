@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-if ! sudo echo &>/dev/null; then echo "Unable to use sudo. Exiting."; exit 2; fi
-
 echo "Enter your humble chameleon domain (e.g. phishy.net):"
 read -p "Domain: " fulldomain
 
