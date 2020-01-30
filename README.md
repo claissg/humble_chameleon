@@ -7,7 +7,7 @@ Check out [the wiki](https://github.com/claissg/humble_chameleon/wiki) for more 
 
 by Forrest Kasler ([fkasler](https://twitter.com/fkasler))(ph3eds)
 
-[![Foo](https://raw.githubusercontent.com/toolswatch/badges/master/arsenal/usa/2018.svg)](https://www.blackhat.com/us-18/arsenal/schedule/index.html#humble-chameleon-eating-fa-for-breakfast-12092)
+[![Foo](https://rawcdn.githack.com/toolswatch/badges/8bd9be6dac2a1d445367001f2371176cc50a5707/arsenal/usa/2018.svg)](https://www.blackhat.com/us-18/arsenal/schedule/index.html#humble-chameleon-eating-fa-for-breakfast-12092)
 
 
 Installation 
