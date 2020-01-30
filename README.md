@@ -5,6 +5,11 @@ In addition, the tool now allows us to categorize domains, hide our phishing pag
 
 Check out [the wiki](https://github.com/claissg/humble_chameleon/wiki) for more detailed installation and usage instructions. See below for basic install:
 
+by Forrest Kasler ([fkasler](https://twitter.com/fkasler))(ph3eds)
+
+[![Foo](https://raw.githubusercontent.com/toolswatch/badges/master/arsenal/usa/2018.svg)](https://www.blackhat.com/us-18/arsenal/schedule/index.html#humble-chameleon-eating-fa-for-breakfast-12092)
+
+
 Installation 
 ============
 This project is now written in Node.js for its flexibility and non-blocking I/O.
