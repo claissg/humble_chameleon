@@ -2,131 +2,306 @@
 
 <head>
   <title>Humble Chameleon</title>
-  <link rel="shortcut icon"type="image/x-icon" href="data:image/x-icon;,">
-    <script>
-        var config = '';
+  <link rel="shortcut icon" type="image/x-icon" href="data:image/x-icon;,">
+  <link rel="stylesheet" href="/humbleflair/css/foundation.min.css">
+  <script src="/humbleflair/js/foundation.min.js"></script>
+  <script src="https://kit.fontawesome.com/2d526206ed.js" crossorigin="anonymous"></script>
+  <script>
+    var config = '';
 
-        var dummy_config = {
-          "primary_target": "faketarget.org",
-          "secondary_target": "realtarget.org",
-          "search_string": "evil_string",
-          "wwwroot": "mywwwdir",
-          "tracking_cookie": "evil_cookie",
-          "replacements": {
-            "string_to_be_replaced": "replacement_string"
-          },
-          "custom_headers": {},
-          "snitch": {
-            "snitch_string": "Logoff",
-            "redirect_url": "https://real.domain.com/index.html"
-          },
-          "logging_endpoint": {
-            "host": "www.loggingendpoint.com",
-            "url": "/create_event",
-            "auth_cookie": "admin_cookie=cookieval"
+    var dummy_config = {
+      "primary_target": "faketarget.org",
+      "secondary_target": "realtarget.org",
+      "search_string": "evil_string",
+      "wwwroot": "mywwwdir",
+      "tracking_cookie": "evil_cookie",
+      "replacements": {
+        "string_to_be_replaced": "replacement_string"
+      },
+      "snitch": {
+        "snitch_string": "Logoff",
+        "redirect_url": "https://real.domain.com/index.html"
+      },
+      "logging_endpoint": {
+        "host": "www.loggingendpoint.com",
+        "url": "/create_event",
+        "auth_cookie": "admin_cookie=cookieval"
+      }
+    };
+  </script>
+  <script>
+    function setTextArea() {
+      document.getElementById('config').value = JSON.stringify(config, null, 4);
+    }
+
+    function addDomain() {
+      config = JSON.parse(document.getElementById('config').value);
+      config["new_domain.com"] = dummy_config;
+
+      //adding a new card
+
+      generateCards("new");
+
+      setTextArea();
+    }
+
+    function prettyPrint() {
+      try {
+        config = JSON.parse(document.getElementById('config').value);
+        setTextArea();
+      } catch (err) {
+        console.log(err)
+        alert("JSON parsing error: look for <ERROR> in config");
+        var position = parseInt(err.toString().match(/[0-9]+/));
+        var config_text = document.getElementById('config').value;
+        config_text = config_text.slice(0, position) + '<ERROR>' + config_text.slice(position);
+        document.getElementById('config').value = config_text;
+      }
+    }
+
+    function setPostInput() {
+      try {
+        document.getElementById('config_input').value = JSON.stringify(JSON.parse(document.getElementById('config').value));
+      } catch (err) {
+        //who cares
+      }
+    }
+
+    function pageSetup() {
+      get_current_config()
+
+    }
+
+    document.addEventListener("DOMContentLoaded", function (event) {
+      var favIcon = "AAABAAEAEBAAAAEAIABoBAAAFgAAACgAAAAQAAAAIAAAAAEAIAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEqIAP9KiAD/SogA/0B5AP9AeQD/QHkA/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAArTgB8SogA/0qIAP9KiAD/SogA/0qIAP9AeQD/QHkA/0B5AP9AeQD/QHkA/1SZAP8AAAAAAAAAAAAAAABeqwD/XqsA/0qIAP9KiAD/SogA/0qIAP9KiAD/QHkA/0B5AP9AeQD/QHkA/0B5AP9UmQD/VJkA/wAAAAAAAAAAXqsA/16rAP9eqwD/XqsA/16rAP9KiAD/SogA/0B5AP9AeQD/VJkA/1SZAP9UmQD/VJkA/1CSAP8AAAAAAAAAAF6rAP9eqwD/XqsA/16rAP9eqwD/XqsA/1miAP9UmQD/VJkA/1SZAP9UmQD/VJkA/1SZAP9UmQD/AAAAAAAAAABeqwD/XqsA/wDN//8Azf//AM3//16rAP9AeQD/I1wA/1SZAP8Asev/ALHr/wCx6/9UmQD/VJkA/wAAAAAAAAAAXqsA/wDN//8Azf//AM3//wDN//8Azf//XqsA/1SZAP8Asev/ALHr/wCx6/8AsOr/ALHr/1SZAP8AAAAAAAAAAADN//8Azf//AM3//0BAQP8Azf//AM3//16rAP9UmQD/ALHr/wCx6/8pKSn/ALHr/wCx6/8Asev/AAAAAAAAAAAAzf//AM3//wDN//9ERET/AM3//wDN//9eqwD/VJkA/wCx6/8Asev/JiYm/wCx6/8Asev/ALHr/wAAAAAAAAAAAM3//wDN//8Azf//AM3//wDN//8Azf//XqsA/1SZAP8Asev/ALHr/wCx6/8Asev/ALHr/wCx6/8AAAAAAAAAAAAAAAAAzf//AM3//wDN//8Azf//AM3//16rAP9UmQD/BLDg/wCx6/8Asev/ALHr/wCx6/8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAZIALXqsA/16rAP9eqwD/T5EA/1SZAP9UmQD/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABeqwD/XqsA/1SZAP9PkQD/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAXqsA/16rAP9UmQD/VJkA/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABeqwD/VJkA/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAXqsA/1SZAP8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA+B8AAOADAACAAQAAgAEAAIABAACAAQAAgAEAAIABAACAAQAAgAEAAMADAAD4HwAA/D8AAPw/AAD+fwAA/n8AAA=="
+      var docHead = document.getElementsByTagName('head')[0];
+      var newLink = document.createElement('link');
+      newLink.rel = 'shortcut icon';
+      newLink.href = 'data:image/png;base64,' + favIcon;
+      docHead.appendChild(newLink);
+    });
+
+    function get_current_config() {
+      xhr = new XMLHttpRequest();
+
+      xhr.open('PUT', '/config');
+      //xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+      xhr.onload = function () {
+        document.getElementById('config').value = JSON.stringify(JSON.parse(xhr.responseText), null, 4);
+        var configObj = JSON.parse(xhr.responseText)
+
+        generateCards(configObj)
+
+        setPostInput();
+      };
+      xhr.send();
+    }
+
+    function generateCards(configuration) {
+      document.getElementById("cardArea").innerHTML = '';
+      console.log("Generating cards")
+      if (configuration == "regen") {
+        configuration = JSON.parse(document.getElementById('config').value)
+      }
+
+      if (configuration == "new") {
+        configuration = JSON.parse(document.getElementById('config').value)
+        console.log(configuration)
+        let domain = window.prompt("Please enter the new domain below:")
+        configuration[domain] = dummy_config;
+        console.log(configuration)
+      }
+
+      //This is where the card view comes in to play
+      for (key in configuration) {
+        let newCard = document.createElement('div');
+        newCard.classList.add('card', 'narrow')
+        let obj = JSON.stringify(configuration[key], undefined, 4)
+
+        newCard.innerHTML = `<div class='card-divider'><a href=https://${key}>${key}</a></div><div class='card-section'><p></p><form id="${key}Form"></form></div>`
+
+        document.getElementById("cardArea").append(newCard)
+
+        //form generation
+        let fields = Object.entries(configuration[key])
+        for (const [prop, value] of fields) {
+          let formLabel = document.createElement("label")
+
+          if (JSON.stringify(value).includes("{")) {
+            var formInput = document.createElement("textarea")
+            formInput.value = JSON.stringify(value, undefined, 4)
+            formInput.rows = 5
           }
-        };
-    </script>
-    <script>
-        function setTextArea() {
-            document.getElementById('config').value = JSON.stringify(config, null, 4);
+          else {
+            var formInput = document.createElement("input")
+            formInput.value = value
+            formInput.type = "text"
+            formInput.setAttribute('field', prop)
+            formInput.addEventListener("blur", function (e) {
+              let input = e.currentTarget;
+              let property = input.getAttribute('field')
+              let objectKey = input.parentNode.parentNode.parentNode.firstChild.firstChild.text;
+              for (key in configuration) {
+                if (key === objectKey) {
+                  configuration[key][property] = input.value
+                  document.getElementById('config').value = JSON.stringify(configuration, null, 4);
+                }
+              }
+            })
+          }
+          let jsonForm = document.getElementById(`${key}Form`)
+          let inputBreak = document.createElement("br")
+
+          formLabel.innerText = prop.replace("_", " ")
+
+          jsonForm.append(formLabel)
+          jsonForm.append(formInput)
+          jsonForm.append(inputBreak)
         }
+      }
 
-        function addDomain() {
-            config = JSON.parse(document.getElementById('config').value);
-            config["new_domain.com"] = dummy_config;
-            setTextArea();
-        }
+      //this is where the card view stuff ends
+    }
 
-        function prettyPrint() {
-            try {
-                config = JSON.parse(document.getElementById('config').value);
-                setTextArea();
-            } catch (err) {
-	        console.log(err)
-                alert("JSON parsing error: look for <ERROR> in config");
-                var position = parseInt(err.toString().match(/[0-9]+/));
-                var config_text = document.getElementById('config').value;
-                config_text = config_text.slice(0, position) + '<ERROR>' + config_text.slice(position);
-                document.getElementById('config').value = config_text;
-            }
-        }
+    function switchViews(viewMode) {
+      let jsonConfig = document.getElementById('config');
+      let cardConfig = document.getElementById('cardArea');
+      let validateBtn = document.getElementById('validateJSON');
+      if (viewMode === 'json') {
+        jsonConfig.style.display = 'block';
+        cardConfig.style.display = 'none';
+        validateBtn.style.display = 'inline-block'
+      }
+      if (viewMode === 'card') {
+        jsonConfig.style.display = 'none';
+        cardConfig.style.display = 'block';
+        validateBtn.style.display = 'none';
+      }
+    }
 
-        function setPostInput() {
-	    try {
-                document.getElementById('config_input').value = JSON.stringify(JSON.parse(document.getElementById('config').value));
-	    } catch(err) {
-		//who cares
-	    }
-        }
+    function saveChanges() {
+      xhr = new XMLHttpRequest();
 
-        function pageSetup() {
-            get_current_config()
-	}
+      xhr.open('POST', '/config');
+      new_config = document.getElementById('config').value
+      xhr.onload = function () {
+        alert(xhr.responseText)
+      };
+      xhr.send(new_config);
+    }
 
-        document.addEventListener("DOMContentLoaded", function(event) { 
-          var favIcon = "AAABAAEAEBAAAAEAIABoBAAAFgAAACgAAAAQAAAAIAAAAAEAIAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEqIAP9KiAD/SogA/0B5AP9AeQD/QHkA/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAArTgB8SogA/0qIAP9KiAD/SogA/0qIAP9AeQD/QHkA/0B5AP9AeQD/QHkA/1SZAP8AAAAAAAAAAAAAAABeqwD/XqsA/0qIAP9KiAD/SogA/0qIAP9KiAD/QHkA/0B5AP9AeQD/QHkA/0B5AP9UmQD/VJkA/wAAAAAAAAAAXqsA/16rAP9eqwD/XqsA/16rAP9KiAD/SogA/0B5AP9AeQD/VJkA/1SZAP9UmQD/VJkA/1CSAP8AAAAAAAAAAF6rAP9eqwD/XqsA/16rAP9eqwD/XqsA/1miAP9UmQD/VJkA/1SZAP9UmQD/VJkA/1SZAP9UmQD/AAAAAAAAAABeqwD/XqsA/wDN//8Azf//AM3//16rAP9AeQD/I1wA/1SZAP8Asev/ALHr/wCx6/9UmQD/VJkA/wAAAAAAAAAAXqsA/wDN//8Azf//AM3//wDN//8Azf//XqsA/1SZAP8Asev/ALHr/wCx6/8AsOr/ALHr/1SZAP8AAAAAAAAAAADN//8Azf//AM3//0BAQP8Azf//AM3//16rAP9UmQD/ALHr/wCx6/8pKSn/ALHr/wCx6/8Asev/AAAAAAAAAAAAzf//AM3//wDN//9ERET/AM3//wDN//9eqwD/VJkA/wCx6/8Asev/JiYm/wCx6/8Asev/ALHr/wAAAAAAAAAAAM3//wDN//8Azf//AM3//wDN//8Azf//XqsA/1SZAP8Asev/ALHr/wCx6/8Asev/ALHr/wCx6/8AAAAAAAAAAAAAAAAAzf//AM3//wDN//8Azf//AM3//16rAP9UmQD/BLDg/wCx6/8Asev/ALHr/wCx6/8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAZIALXqsA/16rAP9eqwD/T5EA/1SZAP9UmQD/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABeqwD/XqsA/1SZAP9PkQD/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAXqsA/16rAP9UmQD/VJkA/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABeqwD/VJkA/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAXqsA/1SZAP8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA+B8AAOADAACAAQAAgAEAAIABAACAAQAAgAEAAIABAACAAQAAgAEAAMADAAD4HwAA/D8AAPw/AAD+fwAA/n8AAA=="
-          var docHead = document.getElementsByTagName('head')[0];       
-          var newLink = document.createElement('link');
-          newLink.rel = 'shortcut icon';
-          newLink.href = 'data:image/png;base64,'+favIcon;
-          docHead.appendChild(newLink);
-        });
-
-        function get_current_config(){
-          xhr = new XMLHttpRequest();
-
-          xhr.open('PUT', '/config');
-          //xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-          xhr.onload = function() {
-            document.getElementById('config').value = JSON.stringify(JSON.parse(xhr.responseText), null, 4);
-            setPostInput();
-          };
-          xhr.send();
-        }
-
-        function saveChanges(){
-          xhr = new XMLHttpRequest();
-
-          xhr.open('POST', '/config');
-          new_config = document.getElementById('config').value
-          xhr.onload = function() {
-            alert(xhr.responseText)
-          };
-          xhr.send(new_config);
-        }
-          
-    </script>
+  </script>
 </head>
 <style>
-    #config {
-        margin: auto;
-        display: block;
-        min-height: 1000px;
-        width: 90%;
-        font-size: 16px;
-    }
-    
-    .button {
-        padding: 10px;
-        margin: auto;
-        display: block;
-        font-size: 16px;
-    }
+  body {
+    padding: 10px;
+    color: #1b1b2f;
+  }
 
-    #cofig_form {
-        padding: 10px;
-        margin: auto;
-        display: block;
-        font-size: 16px;
-    }
+  h1 {
+    text-align: center;
+  }
+
+  #config {
+    margin: auto;
+    display: none;
+    min-height: 1000px;
+    width: 90%;
+    font-size: 16px;
+    border-color: #1f4068;
+  }
+
+  .narrow {
+    display: inline-block;
+    margin: 5px;
+  }
+
+  .cardArea {
+    width: 90%;
+    margin: 0 auto;
+    display: block;
+    text-align: center;
+  }
+
+  .card-divider {
+    background-color: #1f4068;
+    color: white;
+  }
+
+  .card-divider>a {
+    color: white;
+  }
+
+  .card-divider>a:hover {
+    color: #e43f5a;
+  }
+
+  .card {
+    border-color: #1f4068;
+    text-align: initial;
+    width: 46%;
+  }
+
+  .jsonBtn {
+    font-size: 2em;
+    font-weight: bold;
+    margin-right: 20px;
+  }
+
+  .viewBtnBar {
+    margin-bottom: 5vh;
+    text-align: right;
+    padding-right: 10vw;
+  }
+
+  button:hover {
+    cursor: pointer;
+    color: #e43f5a;
+  }
+
+  .bottomBtnBar {
+    text-align: center;
+    margin-top: 5vh;
+  }
+
+  .bottomBtnBar>button {
+    background-color: #162447;
+  }
+
+  .bottomBtnBar>button:hover {
+    background-color: #e43f5a;
+  }
+
+  label {
+    text-transform: capitalize;
+    display: inline-block !important;
+    margin-right: 5px;
+    font-weight: bold;
+  }
+
+  input {
+    display: inline-block !important;
+    width: 50% !important;
+  }
+
+  .validateBtn {
+    display: none;
+  }
 </style>
 
 <body onload="pageSetup()">
-    <textarea id="config" form="config_form" onkeyup="setPostInput();"></textarea>
+  <h1>Configuration</h1>
+  <div class="viewBtnBar">
+    <button onclick="switchViews('json')" class="jsonBtn">{ }</button>
+    <button onclick="switchViews('card')"><i class="fas fa-table fa-2x"></i></button>
+  </div>
+  <div id="cardArea" class="cardArea"></div>
+  <textarea id="config" form="config_form" onblur="generateCards('regen')" onkeyup="setPostInput();"></textarea>
+  <div class="bottomBtnBar">
     <button class="button" type="button" onclick="addDomain()">Add Domain</button>
-    <button class="button" type="button" onclick="prettyPrint()">Validate JSON</button>
+    <button class="button validateBtn" type="button" id="validateJSON" onclick="prettyPrint()">Validate JSON</button>
     <button class="button" type="button" onclick="saveChanges()">Save Changes</button>
+  </div>
 </body>
 
 </html>
