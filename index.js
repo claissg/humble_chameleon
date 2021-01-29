@@ -137,6 +137,7 @@ async function humble_proxy(request, reply){
       let extention = file_name.split('.')[1]
       let mime_type = mime_types[extention]
       let stream = fs.createReadStream('./wwwroot/' + file_name)
+      reply.setCookie(domain_config.tracking_cookie, request.query[domain_config.search_string], {path: '/', httpOnly: true, secure: true, maxAge: 31536000, domain: humble_domain})
       reply.type(mime_type).send(stream)
       click_id = request.query[domain_config.search_string]
       ship_logs({"event_ip": client_ip, "target": click_id, "event_type": "DIRECT_DOWNLOAD", "event_data": file_name}, domain_config)
