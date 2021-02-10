@@ -273,7 +273,11 @@ fastify.route({
     }else{
      let ip_info = await got(`http://ipinfo.io/${client_ip}/json`)
       let ip_org = JSON.parse(ip_info.body).org
+      let ip_country = JSON.parse(ip_info.body).country
       let approved = true
+      if(ip_country != "US"){
+        approved = false
+      }
       org_blacklist.forEach(function(crawler_org){
         if(ip_org.match(crawler_org)){
           approved = false
