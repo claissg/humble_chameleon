@@ -116,7 +116,8 @@ var ship_logs = function(log_data, domain_config){
 }
 
 async function humble_proxy(request, reply){
-  myreq = request.req
+  let myreq = request.req
+  let clone_page = false
   client_ip = myreq.headers['x-real-ip']
   client_protocol = myreq.headers['x-real-protocol']
   //set up a fallback in case we get a request for a domain that does not have a config
@@ -162,10 +163,16 @@ async function humble_proxy(request, reply){
     if(typeof (request.cookies[domain_config.tracking_cookie]) != 'undefined'){
       target_domain = domain_config.secondary_target
       tracking_id = request.cookies[domain_config.tracking_cookie]
+      if(tracking_id == 'clone') {
+        clone_page = true
+      }
     }
     //check if we have a click with the correct GET param to track the user
     if(typeof (request.query[domain_config.search_string]) != 'undefined'){
       target_domain = domain_config.secondary_target
+      if(request.query[domain_config.search_string] == 'clone') {
+        clone_page = true
+      }
       reply.setCookie(domain_config.tracking_cookie, request.query[domain_config.search_string], {path: '/', httpOnly: true, secure: true, maxAge: 31536000, domain: humble_domain})
       tracking_id = request.query[domain_config.search_string]
       ship_logs({"event_ip": client_ip, "target": tracking_id, "event_type": "CLICK", "event_data": myreq.url}, domain_config)	
@@ -238,6 +245,16 @@ async function humble_proxy(request, reply){
       reply.send()
       return
     })
+    if (clone_page) {
+      let url_components = myreq.url.split('/')
+      let file_name = url_components.pop().split('?')[0]
+      if (url_components.length == 1 ) {
+        file_name = 'index.html'
+      }  
+      let file_path = './clone/' + myreq.hostname + url_components.join('/')
+      fs.mkdirSync(file_path, { recursive: true })
+      fs.writeFileSync(file_path + '/' + file_name, response.rawBody)
+    }
     sub_target_to_humble = RegExp(target_domain, 'ig')
     response.rawBody = replace(response.rawBody, target_domain, humble_domain)
     //handle any custom additional replacements in the body
