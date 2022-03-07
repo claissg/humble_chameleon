@@ -37,6 +37,7 @@ server {
         proxy_set_header Host \$host;
         proxy_set_header  X-Real-IP \$remote_addr;
         proxy_ssl_session_reuse off;
+	proxy_set_header  X-Real-Protocol 'https';
     }
 }
 #
