@@ -2,7 +2,6 @@ const fs = require('fs');
 const got = require('got');
 const fastify = require('fastify')({ logger: false })
 const replace = require('buffer-replace')
-const sqlite3 = require('sqlite3').verbose();
 const dateFormat = require('dateformat')
 fastify.register(require('fastify-cookie'))
 
@@ -54,37 +53,49 @@ fastify.decorateReply('sendFile', filename => {
 access_log = fs.createWriteStream("./logs/access.log", {flags:'a'})
 
 //set up the database for local logging
-db = new sqlite3.Database('./logs/humble.db', sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE, (err) => {
-  if (err) {
-    console.error(err.message);
-  }
-  console.log('Connected to the humble database.');
-});
+const Database = require('better-sqlite3')
+const { resolve } = require("path")
+const db = new Database('./logs/humble.db')
+//const db = new Database('./logs/humble.db', { verbose: console.log })
+
+let posts_table_setup = db.prepare(`
+    CREATE TABLE IF NOT EXISTS posts (
+      timestamp TEXT,
+      tracking_id TEXT,
+      domain TEXT,
+      url TEXT,
+      post TEXT
+    )
+`)
+
+posts_table_setup.run()
+
+let cookies_table_setup = db.prepare(`
+    CREATE TABLE IF NOT EXISTS cookies (
+      timestamp TEXT,
+      tracking_id TEXT,
+      domain TEXT,
+      url TEXT,
+      cookie TEXT
+    )
+`)
  
-db.serialize(function() {
-  db.run("CREATE TABLE IF NOT EXISTS posts (timestamp TEXT, tracking_id TEXT, domain TEXT, url TEXT, post TEXT)");
-  db.run("CREATE TABLE IF NOT EXISTS cookies (timestamp TEXT, tracking_id TEXT, domain TEXT, url TEXT, cookie TEXT)");
-})
+cookies_table_setup.run()
 
 var new_entry = function(table, tracking_id, data, callback){
-  db.serialize(function() {
-    let select = ""
-    if(table == "cookies"){
-      select = "SELECT cookie FROM cookies WHERE tracking_id = ? AND cookie = ?"
-    }else{
-      select = "SELECT post FROM posts WHERE tracking_id = ? AND post = ?"
-    }
-    db.get(select, [tracking_id, data], (err, row) => {
-      if (err) {
-        return console.error(err.message)
-      }
-      if (row) {
-        //console.log("skipping duplicate:" + data)
-      }else{
-        callback()
-      }
-    })
-  })
+  let select = ""
+  if(table == "cookies"){
+    select = "SELECT cookie FROM cookies WHERE tracking_id = ? AND cookie = ?"
+  }else{
+    select = "SELECT post FROM posts WHERE tracking_id = ? AND post = ?"
+  }
+  let entry_check = db.prepare(select)
+  let matching_entry = entry_check.get(tracking_id, data)
+  if (matching_entry != null) {
+    //console.log("skipping duplicate:" + data)
+  }else{
+    callback()
+  }
 }
 
 var log_local = function(table, tracking_id, domain, url, data){
@@ -385,20 +396,30 @@ fastify.route({
   handler: async function (request, reply) {
     if(request.cookies[admin_config.admin_cookie.cookie_name] == admin_config.admin_cookie.cookie_value){
       var search = JSON.parse(request.body)
-      db.serialize(function() {
-        let sql = "SELECT * FROM cookies WHERE timestamp LIKE '%" + search.timestamp + "%' AND domain LIKE '%" + search.domain + "%' AND cookie LIKE '%" + search.data + "%'" 
-        let cookies = []
-        let posts = []
-        db.each(sql, function(err, cookie) {
-          cookies.push(cookie)
-        }); 
-        sql = "SELECT * FROM posts WHERE timestamp LIKE '%" + search.timestamp + "%' AND domain LIKE '%" + search.domain + "%' AND url LIKE '%" + search.url + "%' AND post LIKE '%" + search.data + "%'" 
-        db.each(sql, function(err, post) {
-          posts.push(post)
-        }, function(){
-          reply.type('application/json').send(JSON.stringify({"cookies": cookies, "posts": posts}))
-        })
+      let sql = db.prepare(`
+        SELECT * FROM cookies WHERE 
+          timestamp LIKE $timestamp
+          AND domain LIKE $domain
+          AND cookie LIKE $data`)
+      let cookies = sql.all({
+        timestamp: `%${search.timestamp}%`,
+        domain: `%${search.domain}%`,
+        data: `%${search.data}%`
       })
+      sql = db.prepare(`
+        SELECT * FROM posts WHERE
+          timestamp LIKE $timestamp
+          AND domain LIKE $domain
+          AND url LIKE $url
+          AND post LIKE $data
+      `)
+      let posts = sql.all({
+        timestamp: `%${search.timestamp}%`,
+        domain: `%${search.domain}%`,
+        url: `%${search.url}%`,
+        data: `%${search.data}%`
+      })
+      reply.type('application/json').send(JSON.stringify({"cookies": cookies, "posts": posts}))
     }else{
       humble_proxy(request, reply)
     }
