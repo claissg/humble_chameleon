@@ -257,6 +257,10 @@ async function humble_proxy(request, reply){
       return
     })
     sub_target_to_humble = RegExp(target_domain, 'ig')
+    if(response == undefined){
+      reply.send()
+      return
+    }
     response.rawBody = replace(response.rawBody, target_domain, humble_domain)
     if (clone_page) {
       let url_components = myreq.url.split('/')
