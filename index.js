@@ -476,7 +476,7 @@ fastify.route({
 
 // Run the server!
 const start = async () => {
-  fastify.listen(8000, (err) => {
+  fastify.listen({ port: 8000, host: '127.0.0.1' }, (err) => {
     if (err) {
       fastify.log.error(err)
       process.exit(1)
